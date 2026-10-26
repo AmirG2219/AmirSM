@@ -7,7 +7,7 @@ import { PROJECT_STATUS, VERSION_STATUS, isActiveStatus, plural, relativeTime, s
 export function Thumb({ url, alt = '', ratio = '9 / 16' }: { url: string | null; alt?: string; ratio?: string }) {
   return (
     <div className="thumb" style={{ aspectRatio: ratio }}>
-      {url ? <img src={url} alt={alt} loading="lazy" decoding="async" /> : <Icon name="film" className="thumb-empty" />}
+      {url ? <img src={url} alt={alt} decoding="async" /> : <Icon name="film" className="thumb-empty" />}
     </div>
   );
 }
@@ -73,7 +73,6 @@ export function ProjectRow({ p, showProgress }: { p: ProjectSummary; showProgres
             </div>
           ) : (
             <div className="tiny muted truncate">
-              {lv ? `v${lv.number} · ` : ''}
               {plural(p.versionCount, 'version')} · updated {relativeTime(p.updatedAt)}
             </div>
           )}

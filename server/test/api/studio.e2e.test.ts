@@ -99,18 +99,13 @@ describe('Social Studio end-to-end (no AI key)', () => {
     expect((await t.api('POST', `/api/versions/${versionId}/caption/regenerate`, {})).json.error.code).toBe('ai_unavailable');
   });
 
-  it('refuses a revision it cannot honestly interpret (needs AI) and keeps the original intact', async () => {
+  it('refuses a revision up front when the AI that must interpret it is unavailable, leaving history clean', async () => {
     const r = await t.api('POST', `/api/projects/${projectId}/versions`, { instruction: 'Make it faster and add music' });
-    expect(r.status).toBe(201);
-    const v2 = await waitForVersion(t, r.json.id, ['ready', 'failed']);
-    expect(v2.status).toBe('failed');
-    expect(v2.error).toMatch(/AI/);
-    const v1 = await t.api('GET', `/api/versions/${versionId}`);
-    expect(v1.json.status).toBe('ready');
-    // failed draft can be retried (still fails honestly) — proves the retry path is wired
-    const retry = await t.api('POST', `/api/versions/${r.json.id}/retry`, {});
-    expect(retry.status).toBe(200);
-    await waitForVersion(t, r.json.id, ['failed']);
+    expect(r.status).toBe(409);
+    expect(r.json.error.code).toBe('ai_unavailable');
+    const proj = await t.api('GET', `/api/projects/${projectId}`);
+    expect(proj.json.versions.length).toBe(1);
+    expect(proj.json.project.status).toBe('review');
   });
 
   it('approves into an immutable export and refuses double approval', async () => {
@@ -179,8 +174,11 @@ describe('job recovery and cancellation', () => {
     const r = await t.api('POST', `/api/projects/${p}/versions`, {});
     await t.api('POST', `/api/versions/${r.json.id}/cancel`);
     const v = (await t.api('GET', `/api/versions/${r.json.id}`)).json;
-    expect(v.status).toBe('failed');
-    expect(v.error).toMatch(/Cancelled/);
+    expect(v.status).toBe('cancelled');
+    expect((await t.api('GET', `/api/projects/${p}`)).json.project.status).toBe('draft');
+    // a cancelled draft can be retried
     t.ctx.jobs.start();
+    expect((await t.api('POST', `/api/versions/${r.json.id}/retry`, {})).status).toBe(200);
+    expect((await waitForVersion(t, r.json.id, ['ready', 'failed'])).status).toBe('ready');
   });
 });

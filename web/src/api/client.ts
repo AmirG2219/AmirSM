@@ -1,5 +1,14 @@
 import type {
   AssetDTO,
+  CompetitorDTO,
+  EmailAccountDTO,
+  EmailDraftDTO,
+  EmailThreadDetail,
+  EmailThreadSummary,
+  LibraryItem,
+  ResearchCapabilities,
+  ResearchNoteDTO,
+  ResearchRunDTO,
   AuthState,
   DashboardDTO,
   ProjectDetail,
@@ -114,6 +123,20 @@ export function uploadFile(
   return { promise, abort: () => xhr.abort() };
 }
 
+const qs = (o: Record<string, string | undefined>) => {
+  const p = new URLSearchParams();
+  for (const [k, v] of Object.entries(o)) if (v) p.set(k, v);
+  const s = p.toString();
+  return s ? `?${s}` : '';
+};
+const del = <T>(path: string) => request<T>('DELETE', path);
+
+export interface CompetitorInput { name: string; handle?: string | null; url?: string | null; notes?: string }
+export interface NoteInput { kind: ResearchNoteDTO['kind']; title: string; body?: string; sourceUrl?: string | null; sourceLabel?: string | null; competitorId?: string | null; tags?: string[] }
+export interface DraftInput { accountId: string; threadId?: string | null; to: string[]; cc?: string[]; subject: string; body: string; aiAssisted?: boolean }
+export interface CompetitorAnalysis { summary: string; patterns: string[]; hooks: string[]; ideas: string[] }
+export interface MarketResearchResult { summary: string; findings: { title: string; detail: string; sourceUrl?: string }[]; sources: { title: string; url: string }[] }
+
 export interface ProjectListParams {
   status?: string;
   q?: string;
@@ -158,4 +181,34 @@ export const api = {
     approve: (id: string) => post<VersionDTO>(`/api/versions/${encodeURIComponent(id)}/approve`),
     captionUrl: (id: string, download = false) => `/api/versions/${encodeURIComponent(id)}/caption.txt${download ? '?download=1' : ''}`,
   },
+  library: (p: { q?: string; kind?: string; status?: string; projectId?: string }, signal?: AbortSignal) => get<LibraryItem[]>(`/api/library${qs(p)}`, signal),
+  research: {
+    capabilities: (signal?: AbortSignal) => get<ResearchCapabilities>('/api/research/capabilities', signal),
+    competitors: (signal?: AbortSignal) => get<CompetitorDTO[]>('/api/research/competitors', signal),
+    addCompetitor: (b: CompetitorInput) => post<CompetitorDTO>('/api/research/competitors', b),
+    updateCompetitor: (id: string, b: Partial<CompetitorInput>) => patch<CompetitorDTO>(`/api/research/competitors/${encodeURIComponent(id)}`, b),
+    deleteCompetitor: (id: string) => del<{ ok: true }>(`/api/research/competitors/${encodeURIComponent(id)}`),
+    analyze: (id: string, b: { materials: { label: string; text: string; url?: string }[]; focus?: string }) =>
+      post<ResearchRunDTO>(`/api/research/competitors/${encodeURIComponent(id)}/analyze`, b),
+    notes: (p: { kind?: string; q?: string; competitorId?: string }, signal?: AbortSignal) => get<ResearchNoteDTO[]>(`/api/research/notes${qs(p)}`, signal),
+    addNote: (b: NoteInput) => post<ResearchNoteDTO>('/api/research/notes', b),
+    deleteNote: (id: string) => del<{ ok: true }>(`/api/research/notes/${encodeURIComponent(id)}`),
+    market: (b: { topic: string; niche?: string }) => post<ResearchRunDTO>('/api/research/market', b),
+    runs: (signal?: AbortSignal) => get<ResearchRunDTO[]>('/api/research/runs', signal),
+  },
+  email: {
+    accounts: (signal?: AbortSignal) => get<EmailAccountDTO[]>('/api/email/accounts', signal),
+    threads: (p: { accountId?: string; q?: string; filter?: string }, signal?: AbortSignal) => get<EmailThreadSummary[]>(`/api/email/threads${qs(p)}`, signal),
+    thread: (id: string, signal?: AbortSignal) => get<EmailThreadDetail>(`/api/email/threads/${encodeURIComponent(id)}`, signal),
+    markRead: (id: string, read: boolean) => post<EmailThreadDetail>(`/api/email/threads/${encodeURIComponent(id)}/read`, { read }),
+    summarize: (id: string) => post<EmailThreadDetail>(`/api/email/threads/${encodeURIComponent(id)}/summarize`),
+    aiDraft: (b: { instruction: string; threadId?: string; tone?: string }) => post<{ subject: string; body: string }>('/api/email/ai/draft', b),
+    aiTone: (b: { text: string; tone: string }) => post<{ text: string }>('/api/email/ai/tone', b),
+    drafts: (signal?: AbortSignal) => get<EmailDraftDTO[]>('/api/email/drafts', signal),
+    createDraft: (b: DraftInput) => post<EmailDraftDTO>('/api/email/drafts', b),
+    updateDraft: (id: string, b: Partial<Pick<DraftInput, 'to' | 'cc' | 'subject' | 'body' | 'aiAssisted'>>) => patch<EmailDraftDTO>(`/api/email/drafts/${encodeURIComponent(id)}`, b),
+    approve: (id: string) => post<EmailDraftDTO>(`/api/email/drafts/${encodeURIComponent(id)}/approve`),
+    send: (id: string) => post<EmailDraftDTO>(`/api/email/drafts/${encodeURIComponent(id)}/send`),
+  },
+  n8nTest: () => post<unknown>('/api/settings/n8n/test'),
 };

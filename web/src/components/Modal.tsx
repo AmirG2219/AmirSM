@@ -19,7 +19,11 @@ export function Modal({ open, onClose, title, children, footer, locked }: ModalP
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
-    if (open && !d.open) d.showModal();
+    if (open && !d.open) {
+      d.showModal();
+      // Land on the first form field if there is one (otherwise the browser's default, the close button, keeps focus).
+      d.querySelector<HTMLElement>('[data-autofocus], input:not([type=hidden]):not([type=radio]), textarea, select')?.focus();
+    }
     if (!open && d.open) d.close();
   }, [open]);
 

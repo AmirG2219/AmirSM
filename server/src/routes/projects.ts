@@ -215,6 +215,7 @@ export function registerProjectRoutes(app: FastifyInstance, ctx: AppContext) {
     let parentId: string | null = null;
     if (isRevision) {
       if (!b.instruction || b.instruction.length < 3) throw badRequest('Describe what to change.');
+      if (!ctx.ai.status().configured) throw conflict('ai_unavailable', 'Revisions need the AI to interpret your request, and no Anthropic API key is configured. You can still edit the caption by hand.');
       if (b.baseVersionId) {
         const base = getVersionRow(db, b.baseVersionId);
         if (base.project_id !== projectId) throw badRequest('Base version belongs to another project.');
@@ -254,7 +255,7 @@ export function registerProjectRoutes(app: FastifyInstance, ctx: AppContext) {
   app.post('/api/versions/:id/retry', async (req) => {
     const v = getVersionRow(db, (req.params as { id: string }).id);
     const { replan } = z.object({ replan: z.boolean().optional() }).parse(req.body ?? {});
-    if (v.status !== 'failed') throw conflict('not_failed', 'Only failed drafts can be retried.');
+    if (v.status !== 'failed' && v.status !== 'cancelled') throw conflict('not_failed', 'Only failed or cancelled drafts can be retried.');
     const other = db.prepare(`SELECT 1 FROM versions WHERE project_id = ? AND id != ? AND status IN (${ACTIVE.map(() => '?').join(',')})`).get(v.project_id, v.id, ...ACTIVE);
     if (other) throw conflict('busy', 'Another draft is being produced for this project.');
     db.prepare(

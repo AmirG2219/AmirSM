@@ -6,7 +6,7 @@ import { Badge, Button, Callout, EmptyState, ProgressBar, StatusPill, Textarea }
 import { Icon, type IconName } from '../../components/Icon';
 import { Modal } from '../../components/Modal';
 import { useToast } from '../../components/Toast';
-import { VERSION_STATUS, formatBytes, formatDateTime, formatDuration, isActiveStatus, relativeTime } from '../../lib/format';
+import { VERSION_STATUS, dedupeNotes, versionStatusInfo, formatBytes, formatDateTime, formatDuration, isActiveStatus, relativeTime } from '../../lib/format';
 
 export interface AiAvailability {
   /** null = unknown (status could not be loaded); the server stays the source of truth. */
@@ -42,7 +42,7 @@ export function VersionRail({
       </div>
       <ol className="vrail-list">
         {versions.map((v) => {
-          const st = VERSION_STATUS[v.status];
+          const st = versionStatusInfo(v);
           const selected = v.id === selectedId;
           return (
             <li key={v.id}>
@@ -93,7 +93,7 @@ export function ReviewPanel({
   onChanged: () => Promise<void> | void;
   onCreated: (v: VersionDTO) => Promise<void> | void;
 }) {
-  const st = VERSION_STATUS[version.status];
+  const st = versionStatusInfo(version);
   const parent = version.parentVersionId ? versions.find((v) => v.id === version.parentVersionId) : null;
   const hasOutput = !!version.output && ['ready', 'approved', 'superseded'].includes(version.status);
 
@@ -128,7 +128,7 @@ export function ReviewPanel({
       </section>
 
       {isActiveStatus(version.status) ? <ProgressCard version={version} onChanged={onChanged} /> : null}
-      {version.status === 'failed' ? <FailedCard version={version} onChanged={onChanged} anyOtherActive={anyActive} /> : null}
+      {version.status === 'failed' || version.status === 'cancelled' ? <FailedCard version={version} onChanged={onChanged} anyOtherActive={anyActive} /> : null}
 
       {hasOutput ? (
         <div className="review">
@@ -141,11 +141,11 @@ export function ReviewPanel({
         </div>
       ) : null}
 
-      {version.plan || version.planRationale || version.planNotes.length ? <PlanCard version={version} assets={assets} /> : null}
-      {version.quality || version.warnings.length ? <QualityCard version={version} /> : null}
-      {version.plan && version.status !== 'failed' && !isActiveStatus(version.status) ? (
+      {version.plan && version.status !== 'failed' && version.status !== 'cancelled' && !isActiveStatus(version.status) ? (
         <ReviseCard version={version} ai={ai} anyActive={anyActive} onCreated={onCreated} />
       ) : null}
+      {version.plan || version.planRationale || version.planNotes.length ? <PlanCard version={version} assets={assets} /> : null}
+      {version.quality || version.warnings.length ? <QualityCard version={version} /> : null}
     </div>
   );
 }
@@ -240,6 +240,7 @@ function ProgressCard({ version, onChanged }: { version: VersionDTO; onChanged: 
 function FailedCard({ version, onChanged, anyOtherActive }: { version: VersionDTO; onChanged: () => Promise<void> | void; anyOtherActive: boolean }) {
   const toast = useToast();
   const [busy, setBusy] = useState<null | 'retry' | 'replan'>(null);
+  const cancelled = version.status === 'cancelled';
   const run = async (replan: boolean) => {
     setBusy(replan ? 'replan' : 'retry');
     try {
@@ -255,11 +256,11 @@ function FailedCard({ version, onChanged, anyOtherActive }: { version: VersionDT
   return (
     <section className="card" aria-labelledby="fail-h">
       <div className="card-body stack">
-        <Callout tone="err" title={<span id="fail-h">This draft failed</span>}>
+        <Callout tone={cancelled ? 'info' : 'err'} title={<span id="fail-h">{cancelled ? 'This draft was cancelled' : 'This draft failed'}</span>}>
           <p style={{ margin: 0, wordBreak: 'break-word' }}>{version.error ?? version.job?.error ?? 'It stopped without reporting an error.'}</p>
           {version.job ? (
             <p className="tiny muted" style={{ marginTop: 6 }}>
-              {version.job.status === 'cancelled' ? 'Cancelled by you. ' : ''}Attempt {version.job.attempt} of {version.job.maxAttempts}.
+              Attempt {version.job.attempt} of {version.job.maxAttempts}.
             </p>
           ) : null}
         </Callout>
@@ -435,12 +436,6 @@ function CaptionCard({ version, ai, onChanged }: { version: VersionDTO; ai: AiAv
         <Icon name="edit" className="faint" />
         <h2 id="cap-h">Caption</h2>
         {statusBadge}
-        <span className="spacer" />
-        {cap && !editing ? (
-          <Button size="sm" variant="quiet" icon="copy" onClick={() => void copy()}>
-            Copy
-          </Button>
-        ) : null}
       </div>
       <div className="card-body stack">
         {version.captionNote && (version.captionStatus === 'unavailable' || version.captionStatus === 'failed') ? (
@@ -476,20 +471,31 @@ function CaptionCard({ version, ai, onChanged }: { version: VersionDTO; ai: AiAv
               </div>
             ) : null}
           </div>
+        ) : version.captionNote && (version.captionStatus === 'unavailable' || version.captionStatus === 'failed') ? (
+          editable ? <p className="small muted">You can write the caption yourself below.</p> : null
         ) : (
           <EmptyState compact title="No caption yet">
-            {editable ? 'You can write one yourself, or ask for one when AI is connected.' : 'This version has no caption.'}
+            {editable ? 'You can write one yourself, or generate one when AI is connected.' : 'This version has no caption.'}
           </EmptyState>
         )}
 
-        {editable && !editing ? (
+        {(editable || cap) && !editing ? (
           <div className="row">
-            <Button size="sm" icon="edit" onClick={() => setEditing(true)}>
-              {cap ? 'Edit caption' : 'Write caption'}
-            </Button>
-            <Button size="sm" icon="refresh" disabled={aiBlocked} onClick={() => setRegen(true)} title={aiBlocked ? ai.reason ?? 'AI is not available.' : undefined}>
-              {cap ? 'Regenerate' : 'Generate with AI'}
-            </Button>
+            {cap ? (
+              <Button size="sm" icon="copy" onClick={() => void copy()}>
+                Copy
+              </Button>
+            ) : null}
+            {editable ? (
+              <>
+                <Button size="sm" icon="edit" onClick={() => setEditing(true)}>
+                  {cap ? 'Edit' : 'Write caption'}
+                </Button>
+                <Button size="sm" icon="refresh" disabled={aiBlocked} onClick={() => setRegen(true)} title={aiBlocked ? ai.reason ?? 'AI is not available.' : undefined}>
+                  {cap ? 'Regenerate' : 'Generate with AI'}
+                </Button>
+              </>
+            ) : null}
           </div>
         ) : null}
         {editable && !editing && aiBlocked ? (
@@ -522,6 +528,8 @@ function CaptionEditor({ version, initial, onCancel, onSaved }: { version: Versi
     tags: tagList.length > 15 ? 'At most 15 hashtags.' : badTag ? `“${badTag}” isn’t valid: use letters, numbers or underscores only (max 40).` : undefined,
   };
   const invalid = Object.values(errors).some(Boolean);
+  const [touched, setTouched] = useState({ hook: false, body: false });
+  const shown = (k: 'hook' | 'body') => (touched[k] || (k === 'hook' ? hook : body).length > 0 ? errors[k] : undefined);
 
   const save = async () => {
     setBusy(true);
@@ -543,8 +551,8 @@ function CaptionEditor({ version, initial, onCancel, onSaved }: { version: Versi
         if (!invalid) void save();
       }}
     >
-      <Textarea label="Hook" rows={2} value={hook} onChange={(e) => setHook(e.target.value)} error={errors.hook} hint={`${hook.length}/200`} />
-      <Textarea label="Body" rows={6} value={body} onChange={(e) => setBody(e.target.value)} error={errors.body} hint={`${body.length}/1800`} />
+      <Textarea label="Hook" rows={2} value={hook} onChange={(e) => setHook(e.target.value)} onBlur={() => setTouched((t) => ({ ...t, hook: true }))} error={shown('hook')} hint={`${hook.length}/200`} />
+      <Textarea label="Body" rows={6} value={body} onChange={(e) => setBody(e.target.value)} onBlur={() => setTouched((t) => ({ ...t, body: true }))} error={shown('body')} hint={`${body.length}/1800`} />
       <Textarea label="Call to action" optional rows={2} value={cta} onChange={(e) => setCta(e.target.value)} error={errors.cta} />
       <div className="field">
         <label htmlFor="cap-tags">
@@ -621,7 +629,8 @@ const sec = (ms: number) => `${(ms / 1000).toFixed(1)}s`;
 function PlanCard({ version, assets }: { version: VersionDTO; assets: AssetDTO[] }) {
   const plan = version.plan;
   const names = useMemo(() => new Map(assets.map((a) => [a.id, a.originalName])), [assets]);
-  const limitations = plan?.limitations ?? [];
+  const limitations = dedupeNotes(plan?.limitations ?? []);
+  const notes = dedupeNotes(version.planNotes);
   const music = plan?.audio.music;
 
   return (
@@ -632,12 +641,6 @@ function PlanCard({ version, assets }: { version: VersionDTO; assets: AssetDTO[]
         {version.planSource ? <PlanSourceBadge source={version.planSource} /> : null}
       </div>
       <div className="card-body stack">
-        {version.planSource === 'rules' ? (
-          <Callout tone="warn" title="Basic auto-edit — no AI">
-            This edit was assembled by fixed rules, not by an AI model. It trims and orders your clips sensibly but cannot interpret creative instructions in your wording.
-          </Callout>
-        ) : null}
-
         {limitations.length ? (
           <Callout tone="warn" title="What I couldn’t do">
             <ul>
@@ -648,10 +651,10 @@ function PlanCard({ version, assets }: { version: VersionDTO; assets: AssetDTO[]
           </Callout>
         ) : null}
 
-        {version.planNotes.length ? (
+        {notes.length ? (
           <Callout tone="info" title="Notes on this edit">
             <ul>
-              {version.planNotes.map((n, i) => (
+              {notes.map((n, i) => (
                 <li key={i}>{n}</li>
               ))}
             </ul>
@@ -857,8 +860,8 @@ function ReviseCard({ version, ai, anyActive, onCreated }: { version: VersionDTO
       </div>
       <div className="card-body stack">
         {ai.configured === false ? (
-          <Callout tone="warn" title="AI is not connected">
-            Revisions need AI to apply the changes you describe. Without it, the Basic auto-edit can only rebuild its default edit and will say so in the notes. {ai.reason ?? ''}
+          <Callout tone="warn" title="Revisions are unavailable: AI is not connected">
+            Applying the changes you describe needs the AI model; the Basic auto-edit cannot interpret them, so a revision would fail. {ai.reason ?? ''} You can still edit the caption and approve a draft.
           </Callout>
         ) : null}
         <Textarea
@@ -871,7 +874,14 @@ function ReviseCard({ version, ai, anyActive, onCreated }: { version: VersionDTO
           hint="Be specific. Things the engine can’t do (such as new footage or auto-transcription) will be reported under “What I couldn’t do”."
         />
         <div className="row">
-          <Button variant="primary" icon="play" busy={busy} disabled={tooShort || anyActive} onClick={() => void submit()} title={anyActive ? 'Wait for the current draft to finish.' : undefined}>
+          <Button
+            variant="primary"
+            icon="play"
+            busy={busy}
+            disabled={tooShort || anyActive || ai.configured === false}
+            onClick={() => void submit()}
+            title={ai.configured === false ? 'Needs the AI model, which is not connected.' : anyActive ? 'Wait for the current draft to finish.' : undefined}
+          >
             Create revision
           </Button>
           {anyActive ? <span className="small muted">A draft is being produced; wait for it to finish.</span> : null}

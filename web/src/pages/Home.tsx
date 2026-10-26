@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { DashboardDTO, SystemStatusItem } from '@shared/api';
 import { api } from '../api/client';
-import { Badge, Button, Callout, Card, CardHeader, EmptyState, PageHeader, Skeleton } from '../components/ui';
+import { Badge, Button, Callout, Card, LinkButton, CardHeader, EmptyState, PageHeader, Skeleton } from '../components/ui';
 import { Icon, type IconName } from '../components/Icon';
 import { ProjectRow } from '../components/ProjectCard';
 import { useAsync, useDocumentTitle, usePolling } from '../hooks/hooks';
@@ -50,11 +50,9 @@ export function Home() {
         title="Home"
         lede="What is in production, what needs your eye, and the honest state of every connection."
         actions={
-          <Link to="/studio?new=1" style={{ textDecoration: 'none' }}>
-            <Button variant="primary" icon="plus">
-              New project
-            </Button>
-          </Link>
+          <LinkButton to="/studio?new=1" variant="primary" icon="plus">
+            New project
+          </LinkButton>
         }
       />
 

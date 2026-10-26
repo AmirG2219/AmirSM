@@ -8,6 +8,7 @@ import {
   type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
 } from 'react';
+import { Link } from 'react-router-dom';
 import { Icon, type IconName } from './Icon';
 import type { Tone } from '../lib/format';
 
@@ -39,6 +40,16 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     </button>
   );
 });
+
+/** A router link that looks like a button (avoids nesting a button inside an anchor). */
+export function LinkButton({ to, children, variant = 'default', size = 'md', icon }: { to: string; children: ReactNode; variant?: 'default' | 'primary' | 'quiet'; size?: 'sm' | 'md' | 'lg'; icon?: IconName }) {
+  return (
+    <Link to={to} className={cx('btn', variant !== 'default' && `btn-${variant}`, size !== 'md' && `btn-${size}`)}>
+      {icon ? <Icon name={icon} size={size === 'sm' ? 'sm' : undefined} /> : null}
+      {children}
+    </Link>
+  );
+}
 
 interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   icon: IconName;

@@ -9,7 +9,7 @@ import { formatBytes, formatDuration } from '../../lib/format';
 
 const VIDEO_EXT = ['.mp4', '.mov', '.m4v', '.webm', '.mkv'];
 const AUDIO_EXT = ['.mp3', '.m4a', '.wav', '.aac'];
-const MAX_PARALLEL = 2;
+const MAX_PARALLEL = 1; // sequential: clips keep the order they were chosen in
 
 type UploadStatus = 'queued' | 'uploading' | 'processing' | 'done' | 'error';
 interface UploadRow {
@@ -398,7 +398,7 @@ function DropZone({
       <div className="dropzone-mark">
         <Icon name={kind === 'audio' ? 'music' : 'upload'} />
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div className="dropzone-text">
         <div style={{ fontWeight: 600 }}>{title}</div>
         <div className="small muted">{hint}</div>
       </div>

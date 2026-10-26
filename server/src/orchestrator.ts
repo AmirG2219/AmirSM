@@ -28,7 +28,7 @@ const span = (s: Stage, f: number) => STAGES[s][0] + (STAGES[s][1] - STAGES[s][0
 export function recalcProjectStatus(db: AppContext['db'], projectId: string) {
   const p = db.prepare('SELECT status, approved_version_id FROM projects WHERE id = ?').get(projectId) as Row | undefined;
   if (!p || p.status === 'archived') return;
-  const vs = db.prepare('SELECT status FROM versions WHERE project_id = ?').all(projectId) as Row[];
+  const vs = (db.prepare('SELECT status FROM versions WHERE project_id = ?').all(projectId) as Row[]).filter((v) => v.status !== 'cancelled');
   const has = (...s: string[]) => vs.some((v) => s.includes(v.status));
   let status = 'draft';
   if (has('queued', 'planning', 'rendering', 'captioning')) status = 'processing';
@@ -171,8 +171,8 @@ export function createProduceHandler(ctx: AppContext): JobHandler {
     onFinalFailure(job: Row, error: Error, cancelled: boolean) {
       const v = ctx.db.prepare('SELECT id, project_id, number, status FROM versions WHERE id = ?').get(job.version_id) as Row | undefined;
       if (!v) return;
-      if (v.status !== 'failed') {
-        setVersion(ctx, v.id, { status: 'failed', error: cancelled ? 'Cancelled by owner.' : error.message.slice(0, 1000), finished_at: now() });
+      if (v.status !== 'failed' && v.status !== 'cancelled') {
+        setVersion(ctx, v.id, { status: cancelled ? 'cancelled' : 'failed', error: cancelled ? null : error.message.slice(0, 1000), finished_at: now() });
       }
       const p = ctx.db.prepare('SELECT title FROM projects WHERE id = ?').get(v.project_id) as Row | undefined;
       logEvent(ctx.db, cancelled ? 'version.cancelled' : 'version.failed', `Draft v${v.number} of “${p?.title ?? ''}” ${cancelled ? 'was cancelled' : 'failed'}.`, v.project_id, v.id);

@@ -24,7 +24,7 @@ const RULES: Rule[] = [
   },
   {
     id: 'music',
-    request: /\b(background\s+music|add\s+(some\s+)?music|music\s+(from|off)\s+the\s+(internet|web)|trending\s+(song|sound|audio|track)|royalty[- ]free\s+music|copyright[- ]free\s+music|\bspotify\b|\bsong\b|\bsoundtrack\b|\bbeat\s+drop\b)/i,
+    request: /\b(background\s+music|add\s+(some\s+)?music|music\s+(from|off)\s+the\s+(internet|web)|trending\s+(songs?|sounds?|audio|tracks?|music)|(some|any|good|nice|upbeat|chill)\s+music|royalty[- ]free\s+music|copyright[- ]free\s+music|\bspotify\b|\bsong\b|\bsoundtrack\b|\bbeat\s+drop\b)/i,
     covered: /music|song|soundtrack/i,
     message: 'Music cannot be supplied by the app (no music library or internet audio). Upload your own audio file (you must have the rights) and it can be mixed in.',
     when: ({ assets }) => !assets.some((a) => a.kind === 'audio'),

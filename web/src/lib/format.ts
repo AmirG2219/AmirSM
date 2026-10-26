@@ -1,3 +1,4 @@
+import type { VersionDTO } from '@shared/api';
 import type { ProjectStatus, VersionStatus } from '@shared/domain';
 import type { OutputFormat, StylePreset } from '@shared/editPlan';
 
@@ -71,8 +72,13 @@ export const VERSION_STATUS: Record<VersionStatus, { label: string; tone: Tone }
   ready: { label: 'Ready for review', tone: 'info' },
   approved: { label: 'Approved', tone: 'ok' },
   failed: { label: 'Failed', tone: 'err' },
+  cancelled: { label: 'Cancelled', tone: 'neutral' },
   superseded: { label: 'Superseded', tone: 'neutral' },
 };
+
+export function versionStatusInfo(v: Pick<VersionDTO, 'status'>): { label: string; tone: Tone } {
+  return VERSION_STATUS[v.status];
+}
 
 export const ACTIVE_VERSION_STATUSES: readonly VersionStatus[] = ['queued', 'planning', 'rendering', 'captioning'];
 export const isActiveStatus = (s: VersionStatus) => ACTIVE_VERSION_STATUSES.includes(s);
@@ -92,6 +98,22 @@ export const FORMAT_OPTIONS: { id: OutputFormat; label: string; blurb: string }[
 ];
 
 export const styleLabel = (id: string) => STYLE_OPTIONS.find((s) => s.id === id)?.label ?? id;
+
+/** Drop notes that repeat another note (same words, or a near-identical sentence). Order is preserved. */
+export function dedupeNotes(notes: string[]): string[] {
+  const tokens = (s: string) => new Set(s.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter((w) => w.length > 2));
+  const kept: { text: string; t: Set<string> }[] = [];
+  for (const n of notes) {
+    const t = tokens(n);
+    const dup = kept.some((k) => {
+      const inter = [...t].filter((w) => k.t.has(w)).length;
+      const union = new Set([...t, ...k.t]).size || 1;
+      return inter / union >= 0.7;
+    });
+    if (!dup) kept.push({ text: n, t });
+  }
+  return kept.map((k) => k.text);
+}
 
 export function plural(n: number, one: string, many = `${one}s`): string {
   return `${n} ${n === 1 ? one : many}`;

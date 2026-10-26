@@ -1,7 +1,5 @@
-import { Link } from 'react-router-dom';
-import { EmptyState, PageHeader } from '../components/ui';
+import { EmptyState, LinkButton, PageHeader } from '../components/ui';
 import type { IconName } from '../components/Icon';
-import { Button } from '../components/ui';
 import { useDocumentTitle } from '../hooks/hooks';
 
 export function Placeholder({ title, icon, lede, children }: { title: string; icon: IconName; lede: string; children: string }) {
@@ -13,11 +11,9 @@ export function Placeholder({ title, icon, lede, children }: { title: string; ic
         {children}
       </EmptyState>
       <div style={{ marginTop: 'var(--s-4)' }}>
-        <Link to="/studio" style={{ textDecoration: 'none' }}>
-          <Button variant="quiet" icon="studio">
-            Go to Social Studio
-          </Button>
-        </Link>
+        <LinkButton to="/studio" variant="quiet" icon="studio">
+          Go to Social Studio
+        </LinkButton>
       </div>
     </div>
   );

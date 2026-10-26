@@ -47,7 +47,7 @@ export function toProjectDTO(r: Row): ProjectDTO {
   };
 }
 export function toProjectSummary(db: Db, r: Row): ProjectSummary {
-  const counts = db.prepare("SELECT (SELECT COUNT(*) FROM assets WHERE project_id = ?1 AND excluded = 0) AS a, (SELECT COUNT(*) FROM versions WHERE project_id = ?1) AS v").get(r.id) as Row;
+  const counts = db.prepare("SELECT (SELECT COUNT(*) FROM assets WHERE project_id = ?1 AND excluded = 0 AND kind = 'video') AS a, (SELECT COUNT(*) FROM versions WHERE project_id = ?1) AS v").get(r.id) as Row;
   const latest = db.prepare('SELECT id, number, status FROM versions WHERE project_id = ? ORDER BY number DESC LIMIT 1').get(r.id) as Row | undefined;
   let progress: number | null = null;
   if (latest) {

@@ -51,7 +51,7 @@ export type QualityReport = z.infer<typeof QualityReportSchema>;
 export const PROJECT_STATUSES = ['draft', 'processing', 'review', 'approved', 'failed', 'archived'] as const;
 export type ProjectStatus = (typeof PROJECT_STATUSES)[number];
 
-export const VERSION_STATUSES = ['queued', 'planning', 'rendering', 'captioning', 'ready', 'approved', 'failed', 'superseded'] as const;
+export const VERSION_STATUSES = ['queued', 'planning', 'rendering', 'captioning', 'ready', 'approved', 'failed', 'cancelled', 'superseded'] as const;
 export type VersionStatus = (typeof VERSION_STATUSES)[number];
 
 export const JOB_TYPES = ['produce_version'] as const;

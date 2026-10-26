@@ -2,12 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import { Link, useParams } from 'react-router-dom';
 import type { ProjectDetail, VersionDTO } from '@shared/api';
 import { ApiError, api } from '../../api/client';
-import { Button, Callout, EmptyState, IconButton, Skeleton, StatusPill } from '../../components/ui';
+import { Button, Callout, EmptyState, IconButton, LinkButton, Skeleton, StatusPill } from '../../components/ui';
 import { Icon } from '../../components/Icon';
 import { Modal } from '../../components/Modal';
 import { useToast } from '../../components/Toast';
 import { useAsync, useDocumentTitle, usePolling } from '../../hooks/hooks';
-import { FORMAT_OPTIONS, PROJECT_STATUS, VERSION_STATUS, isActiveStatus, plural, relativeTime, styleLabel } from '../../lib/format';
+import { FORMAT_OPTIONS, PROJECT_STATUS, versionStatusInfo, isActiveStatus, plural, relativeTime, styleLabel } from '../../lib/format';
 import { FootageStep } from './FootageStep';
 import { BriefStep } from './BriefStep';
 import { CompareDialog, ReviewPanel, VersionRail, type AiAvailability } from './ReviewStep';
@@ -95,6 +95,10 @@ export function ProjectPage() {
 
   useDocumentTitle(detail?.project.title ?? 'Project');
 
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [step]);
+
   // Pick the starting step once data arrives.
   useEffect(() => {
     if (!detail || step) return;
@@ -103,7 +107,9 @@ export function ProjectPage() {
   }, [detail, step]);
 
   const versions = detail?.versions ?? [];
-  const selected = versions.find((v) => v.id === selectedId) ?? versions[0] ?? null;
+  // Default to what matters most: something in production, else a draft awaiting review, else the approved one.
+  const defaultVersion = versions.find((v) => isActiveStatus(v.status)) ?? versions.find((v) => v.status === 'ready') ?? versions.find((v) => v.status === 'approved') ?? versions[0] ?? null;
+  const selected = versions.find((v) => v.id === selectedId) ?? defaultVersion;
   const firstThumb = useMemo(() => detail?.assets.filter((a) => a.kind === 'video' && a.thumbUrl).sort((x, y) => x.sortOrder - y.sortOrder)[0]?.thumbUrl ?? null, [detail]);
 
   const createDraft = async (instruction: string) => {
@@ -130,7 +136,7 @@ export function ProjectPage() {
       <div className="page page-narrow">
         <BackLink />
         {notFound ? (
-          <EmptyState icon="search" title="Project not found" action={<Link to="/studio"><Button>Back to projects</Button></Link>}>
+          <EmptyState icon="search" title="Project not found" action={<LinkButton to="/studio">Back to projects</LinkButton>}>
             It may have been removed, or the link is wrong.
           </EmptyState>
         ) : (
@@ -160,7 +166,7 @@ export function ProjectPage() {
     {
       id: 'review',
       label: 'Draft & review',
-      sub: latest ? `v${latest.number} · ${VERSION_STATUS[latest.status].label}` : 'No draft yet',
+      sub: latest ? `v${latest.number} · ${versionStatusInfo(latest).label}` : 'No draft yet',
       done: versions.some((v) => v.status === 'ready' || v.status === 'approved'),
     },
   ];
@@ -330,7 +336,7 @@ function ProjectHeader({ project, onChanged }: { project: ProjectDetail['project
           </span>
         </div>
       </div>
-      <Button variant="quiet" icon="archive" onClick={() => (project.status === 'archived' ? void archive() : setArchiveAsk(true))} disabled={busy}>
+      <Button variant="quiet" size="sm" icon="archive" onClick={() => (project.status === 'archived' ? void archive() : setArchiveAsk(true))} disabled={busy}>
         {project.status === 'archived' ? 'Unarchive' : 'Archive'}
       </Button>
       <Modal

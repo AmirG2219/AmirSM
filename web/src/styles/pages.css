@@ -33,6 +33,7 @@
 
 /* ---------- Studio list ---------- */
 .filters { display: flex; gap: var(--s-3); margin-bottom: var(--s-5); flex-wrap: wrap; }
+@media (max-width: 480px) { .filters > div { flex: 1 1 100% !important; } }
 .pgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: var(--s-4); }
 @media (max-width: 480px) { .pgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-3); } }
 .pcard { display: flex; flex-direction: column; text-decoration: none; color: inherit; overflow: hidden; height: 100%; transition: border-color .15s var(--ease), transform .15s var(--ease); }
@@ -46,7 +47,7 @@
 /* ---------- Project page ---------- */
 .backlink { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); text-decoration: none; margin-bottom: var(--s-3); min-height: 32px; }
 .backlink:hover { color: var(--accent); }
-.proj-head { display: flex; align-items: flex-start; gap: var(--s-4); flex-wrap: wrap; margin-bottom: var(--s-5); }
+.proj-head { display: flex; align-items: flex-start; gap: var(--s-2) var(--s-4); flex-wrap: wrap; margin-bottom: var(--s-5); }
 .proj-title { font-family: var(--font-display); font-size: 32px; letter-spacing: -0.02em; overflow-wrap: anywhere; }
 @media (max-width: 767px) { .proj-title { font-size: 25px; } }
 
@@ -75,6 +76,8 @@
 .dropzone { display: flex; align-items: center; gap: var(--s-4); padding: var(--s-5); border: 1.5px dashed var(--line-strong); border-radius: var(--r-l); background: var(--surface-2); transition: border-color .15s var(--ease), background-color .15s var(--ease); flex-wrap: wrap; }
 .dropzone-on { border-color: var(--accent); background: var(--accent-soft); }
 .dropzone-compact { padding: var(--s-4); }
+.dropzone-text { flex: 1 1 200px; min-width: 0; }
+@media (max-width: 640px) { .dropzone { flex-direction: column; align-items: stretch; text-align: center; padding: var(--s-4); } .dropzone-mark { margin: 0 auto; } .dropzone .btn { width: 100%; min-height: 46px; } }
 .dropzone-mark { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); flex: none; }
 .uploads { display: grid; gap: var(--s-2); }
 .upload { display: flex; gap: 12px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-m); background: var(--surface-raised); }
@@ -107,7 +110,7 @@
 /* ---------- Brief ---------- */
 .fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
 .fieldset legend { font-size: 13px; font-weight: 600; padding: 0; margin-bottom: 8px; }
-.choice-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--s-2); }
+.choice-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--s-2); }
 .choice-grid-3 { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
 .choice { position: relative; display: flex; flex-direction: column; gap: 3px; padding: 12px 14px 12px 40px; min-height: 64px; border: 1px solid var(--line-strong); border-radius: var(--r-m); background: var(--surface-raised); cursor: pointer; transition: border-color .15s var(--ease), background-color .15s var(--ease); }
 .choice:hover { border-color: var(--ink-3); }
@@ -138,8 +141,8 @@
 
 .review { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: var(--s-4); align-items: start; }
 @media (max-width: 760px) { .review { grid-template-columns: minmax(0, 1fr); } }
-.player { background: #000; width: 100%; max-height: 72vh; display: flex; justify-content: center; }
-.player video { width: 100%; height: 100%; max-height: 72vh; object-fit: contain; background: #000; }
+.player { background: #000; width: 100%; max-height: 64vh; display: flex; justify-content: center; }
+.player video { width: 100%; height: 100%; max-height: 64vh; object-fit: contain; background: #000; }
 .request { margin: 0; }
 .request blockquote { margin: 4px 0 0; padding: 2px 0 2px 14px; border-left: 3px solid var(--accent-line); color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; }
 
