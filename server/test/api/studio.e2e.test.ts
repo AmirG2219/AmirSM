@@ -96,6 +96,9 @@ describe('Social Studio end-to-end (no AI key)', () => {
     const ok = await t.api('PATCH', `/api/versions/${versionId}/caption`, { hook: 'Slow mornings', body: 'Coffee and quiet.', cta: 'Save this.', hashtags: ['slowliving'] });
     expect(ok.json.captionStatus).toBe('manual');
     expect(ok.json.captionText).toContain('#slowliving');
+    const cc = ok.json.quality.checks.filter((c: any) => c.id.startsWith('caption-'));
+    expect(cc.length).toBeGreaterThan(1);
+    expect(cc.some((c: any) => c.id === 'caption-present')).toBe(false);
     expect((await t.api('POST', `/api/versions/${versionId}/caption/regenerate`, {})).json.error.code).toBe('ai_unavailable');
   });
 

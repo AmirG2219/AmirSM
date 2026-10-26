@@ -171,7 +171,7 @@ function Dashboard({ d }: { d: DashboardDTO }) {
                   <ul className="plain-list">
                     {d.pendingEmail.needsReplyThreads.map((t) => (
                       <li key={t.id}>
-                        <span className="truncate">{t.subject || '(no subject)'}</span>
+                        <Link to="/email" className="plain-link truncate">{t.subject || '(no subject)'}</Link>
                         <span className="tiny faint nowrap">{relativeTime(t.lastMessageAt)}</span>
                       </li>
                     ))}
@@ -184,7 +184,7 @@ function Dashboard({ d }: { d: DashboardDTO }) {
                   <ul className="plain-list">
                     {d.pendingEmail.drafts.map((x) => (
                       <li key={x.id}>
-                        <span className="truncate">{x.subject}</span>
+                        <Link to="/email" className="plain-link truncate">{x.subject}</Link>
                         <Badge tone={x.status === 'approved' ? 'ok' : x.status === 'failed' ? 'err' : 'neutral'}>{x.status}</Badge>
                       </li>
                     ))}
@@ -203,16 +203,16 @@ function Dashboard({ d }: { d: DashboardDTO }) {
             <ul className="plain-list">
               {d.recentResearch.map((r) => (
                 <li key={r.id}>
-                  <span className="truncate">
+                  <Link to="/research" className="plain-link truncate">
                     <Badge outline>{r.kind.replace(/_/g, ' ')}</Badge> <span style={{ marginLeft: 6 }}>{r.title}</span>
-                  </span>
+                  </Link>
                   <span className="tiny faint nowrap">{relativeTime(r.createdAt)}</span>
                 </li>
               ))}
             </ul>
           ) : (
             <EmptyState compact title="No research saved yet">
-              Competitor notes, ideas and analyses you save will show up here. The Research workspace arrives in phase 2.
+              Competitor notes, ideas and analyses you save in Research will show up here.
             </EmptyState>
           )}
         </div>

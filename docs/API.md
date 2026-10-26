@@ -18,14 +18,14 @@ Dev: Vite on :5300 proxies `/api` to the API on :4300. Production: API serves `w
 - `POST /api/projects/:id/assets` multipart, field name `files` (repeat) → `UploadResult` (per-file ok/error; duplicates and non-media rejected)
 - `PATCH /api/assets/:id {excluded?, sortOrder?}`; `GET /api/assets/:id/file` (Range), `/thumb`
 - `POST /api/projects/:id/versions {instruction?, baseVersionId?}` → `VersionDTO` (201). First call = initial draft (instruction defaults to the project brief). Later calls = revisions (instruction required). 409 `busy` while a draft is in production.
-- `GET /api/versions/:id` · `POST /api/versions/:id/cancel` · `POST /api/versions/:id/retry {replan?}` (failed only)
+- `GET /api/versions/:id` · `POST /api/versions/:id/cancel` · `POST /api/versions/:id/retry {replan?}` (failed or cancelled)
 - `PATCH /api/versions/:id/caption {hook, body, cta, hashtags[]}` (ready only → captionStatus `manual`)
 - `POST /api/versions/:id/caption/regenerate {feedback?}` (needs API key, else 409 `ai_unavailable`)
 - `POST /api/versions/:id/approve` (ready only) → copies video + caption + plan into immutable `exports/…`
 - `GET /api/versions/:id/video[?download=1]` (Range), `GET /api/versions/:id/caption.txt[?download=1]`
 - `GET /api/jobs` → active jobs
 
-Version lifecycle: `queued → planning → rendering → captioning → ready → approved` (or `failed`, `superseded`). Poll `GET /api/projects/:id` or `/api/versions/:id` every ~1.5s while active; `version.job.progress` is 0..1 and `job.message` is human-readable. `planSource` is `ai` or `rules` ("Basic auto-edit, no AI") — surface it. `captionStatus` `unavailable|failed` ⇒ show `captionNote`; the owner can type a caption.
+Version lifecycle: `queued → planning → rendering → captioning → ready → approved` (or `failed`, `cancelled`, `superseded`). Revisions return 409 `ai_unavailable` when no API key is configured. Poll `GET /api/projects/:id` or `/api/versions/:id` every ~1.5s while active; `version.job.progress` is 0..1 and `job.message` is human-readable. `planSource` is `ai` or `rules` ("Basic auto-edit, no AI") — surface it. `captionStatus` `unavailable|failed` ⇒ show `captionNote`; the owner can type a caption.
 
 ## Home / Library / Settings
 - `GET /api/dashboard` → `DashboardDTO` (real data only; empty arrays when empty)

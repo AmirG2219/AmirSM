@@ -16,6 +16,8 @@ import {
   thumbFilePath, toAssetDTO, toProjectDTO, toProjectSummary, toVersionDTO,
 } from '../repo.js';
 import { produceCaption, recalcProjectStatus } from '../orchestrator.js';
+import { captionChecks, overallOf } from '../ai/review.js';
+import type { QualityReport } from '../../../shared/domain.js';
 
 const ACTIVE = ['queued', 'planning', 'rendering', 'captioning'];
 
@@ -271,7 +273,15 @@ export function registerProjectRoutes(app: FastifyInstance, ctx: AppContext) {
     const v = getVersionRow(db, (req.params as { id: string }).id);
     if (v.status !== 'ready') throw conflict('not_editable', 'The caption can only be edited while the draft is awaiting review.');
     const cap = CaptionSchema.parse(req.body);
-    db.prepare("UPDATE versions SET caption_json = ?, caption_status = 'manual', caption_note = NULL WHERE id = ?").run(JSON.stringify(cap), v.id);
+    // The caption checks (and the AI consistency note, which described the old text) are stale after a manual edit: recompute them.
+    const q = parseJson<QualityReport | null>(v.quality_json, null);
+    let qualityJson = v.quality_json as string | null;
+    if (q) {
+      const kept = q.checks.filter((c) => !c.id.startsWith('caption-') && c.id !== 'ai-consistency');
+      const checks = [...kept, ...captionChecks(cap)];
+      qualityJson = JSON.stringify({ ...q, checks, overall: overallOf(checks), sources: q.sources.filter((s) => s !== 'ai') });
+    }
+    db.prepare("UPDATE versions SET caption_json = ?, caption_status = 'manual', caption_note = NULL, quality_json = ? WHERE id = ?").run(JSON.stringify(cap), qualityJson, v.id);
     return toVersionDTO(db, getVersionRow(db, v.id));
   });
 

@@ -55,7 +55,7 @@ export function Library() {
           <Icon name="search" />
           <input className="input input-search" type="search" placeholder="Search file names, project titles, captions and briefs" aria-label="Search the library" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
-        <div style={{ flex: '0 1 190px' }}>
+        <div className="filter-half" style={{ flex: '0 1 190px' }}>
           <select className="select" aria-label="Filter by type" value={kind} onChange={(e) => setKind(e.target.value)}>
             {KINDS.map((k) => (
               <option key={k.id} value={k.id}>
@@ -64,7 +64,7 @@ export function Library() {
             ))}
           </select>
         </div>
-        <div style={{ flex: '0 1 220px' }}>
+        <div className="filter-half" style={{ flex: '0 1 220px' }}>
           <select className="select" aria-label="Filter by status" value={status} onChange={(e) => setStatus(e.target.value)}>
             {STATUSES.map((k) => (
               <option key={k.id} value={k.id}>

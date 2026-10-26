@@ -257,7 +257,7 @@ function FailedCard({ version, onChanged, anyOtherActive }: { version: VersionDT
     <section className="card" aria-labelledby="fail-h">
       <div className="card-body stack">
         <Callout tone={cancelled ? 'info' : 'err'} title={<span id="fail-h">{cancelled ? 'This draft was cancelled' : 'This draft failed'}</span>}>
-          <p style={{ margin: 0, wordBreak: 'break-word' }}>{version.error ?? version.job?.error ?? 'It stopped without reporting an error.'}</p>
+          <p style={{ margin: 0, wordBreak: 'break-word' }}>{version.error ?? version.job?.error ?? (cancelled ? 'You cancelled it before it finished.' : 'It stopped without reporting an error.')}</p>
           {version.job ? (
             <p className="tiny muted" style={{ marginTop: 6 }}>
               Attempt {version.job.attempt} of {version.job.maxAttempts}.
