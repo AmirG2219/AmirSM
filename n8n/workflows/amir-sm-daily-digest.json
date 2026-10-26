@@ -1,0 +1,150 @@
+{
+  "name": "Amir SM — daily digest",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 8,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "name": "Every morning 08:00"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://localhost:4300/api/integrations/n8n/digest",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        240,
+        0
+      ],
+      "name": "Get digest from Amir SM",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE",
+          "name": "Amir SM inbound token (Authorization: Bearer <N8N_INBOUND_TOKEN>)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "d1",
+              "leftValue": "={{ $json.hasItems }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        480,
+        0
+      ],
+      "name": "Anything to report?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ from: 'Amir SM <REPLACE_WITH_VERIFIED_SENDER@yourdomain.com>', to: ['REPLACE_WITH_YOUR_ADDRESS@example.com'], subject: 'Amir SM — your morning digest', text: ['Awaiting your review:', ...($json.awaitingReview.length ? $json.awaitingReview : ['nothing']), '', 'Failed in the last 24h:', ...($json.failedLast24h.length ? $json.failedLast24h : ['nothing']), '', `Email drafts pending: ${$json.emailDraftsPending}`, `Threads needing a reply: ${$json.threadsNeedingReply}`].join('\\n') }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        720,
+        -80
+      ],
+      "name": "Email digest (Resend)",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE",
+          "name": "Resend API key (Authorization: Bearer re_...)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every morning 08:00": {
+      "main": [
+        [
+          {
+            "node": "Get digest from Amir SM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get digest from Amir SM": {
+      "main": [
+        [
+          {
+            "node": "Anything to report?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anything to report?": {
+      "main": [
+        [
+          {
+            "node": "Email digest (Resend)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "meta": {
+    "description": "Daily summary pulled from the Amir SM app (reviews waiting, failures, email drafts). Sends nothing when there is nothing to report. Inactive by default."
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

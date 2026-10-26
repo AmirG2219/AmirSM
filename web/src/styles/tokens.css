@@ -1,0 +1,106 @@
+/* Design tokens. Warm editorial palette, one clay accent. Dark values are declared twice on purpose
+   (system preference + explicit data-theme) so the manual toggle always wins. */
+:root {
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Nyala', 'Ebrima', 'Noto Sans Ethiopic', 'Helvetica Neue', Arial, sans-serif;
+  --font-display: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, 'Nyala', 'Noto Serif Ethiopic', serif;
+  --font-mono: ui-monospace, 'Cascadia Code', 'SF Mono', Consolas, monospace;
+
+  --bg: #f4f0e9;
+  --bg-sunken: #ebe5da;
+  --surface: #fbf9f5;
+  --surface-2: #f6f2ea;
+  --surface-raised: #ffffff;
+  --ink: #201b15;
+  --ink-2: #5a5146;
+  --ink-3: #75695b;
+  --line: #e3dccf;
+  --line-strong: #cfc6b5;
+  --accent: #a4491f;
+  --accent-hover: #8b3d17;
+  --accent-ink: #ffffff;
+  --accent-soft: #f4e4d8;
+  --accent-line: #e5c6b0;
+  --ok: #3b6a47;
+  --ok-soft: #e2ece0;
+  --warn: #86570a;
+  --warn-soft: #f6ebd1;
+  --err: #a23729;
+  --err-soft: #f7e0db;
+  --info: #3a5871;
+  --info-soft: #e1eaf1;
+  --scrim: rgba(32, 27, 21, 0.45);
+  --shadow-pop: 0 12px 40px rgba(32, 27, 21, 0.18);
+
+  --r-s: 6px;
+  --r-m: 10px;
+  --r-l: 16px;
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --sidebar-w: 236px;
+  --tabbar-h: 62px;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #14110d;
+    --bg-sunken: #0f0d0a;
+    --surface: #1b1813;
+    --surface-2: #211d17;
+    --surface-raised: #272219;
+    --ink: #f1eadf;
+    --ink-2: #b9ae9e;
+    --ink-3: #978c7c;
+    --line: #2d2820;
+    --line-strong: #433b30;
+    --accent: #e8946a;
+    --accent-hover: #f2a784;
+    --accent-ink: #1c0f07;
+    --accent-soft: #382316;
+    --accent-line: #5b3824;
+    --ok: #8fc79c;
+    --ok-soft: #1b2a1f;
+    --warn: #e2b55f;
+    --warn-soft: #2e2511;
+    --err: #f0948a;
+    --err-soft: #35191a;
+    --info: #93b8d4;
+    --info-soft: #192733;
+    --scrim: rgba(0, 0, 0, 0.6);
+    --shadow-pop: 0 12px 40px rgba(0, 0, 0, 0.5);
+  }
+}
+:root[data-theme='dark'] {
+  --bg: #14110d;
+  --bg-sunken: #0f0d0a;
+  --surface: #1b1813;
+  --surface-2: #211d17;
+  --surface-raised: #272219;
+  --ink: #f1eadf;
+  --ink-2: #b9ae9e;
+  --ink-3: #978c7c;
+  --line: #2d2820;
+  --line-strong: #433b30;
+  --accent: #e8946a;
+  --accent-hover: #f2a784;
+  --accent-ink: #1c0f07;
+  --accent-soft: #382316;
+  --accent-line: #5b3824;
+  --ok: #8fc79c;
+  --ok-soft: #1b2a1f;
+  --warn: #e2b55f;
+  --warn-soft: #2e2511;
+  --err: #f0948a;
+  --err-soft: #35191a;
+  --info: #93b8d4;
+  --info-soft: #192733;
+  --scrim: rgba(0, 0, 0, 0.6);
+  --shadow-pop: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+:root[data-theme='light'] { color-scheme: light; }
+:root[data-theme='dark'] { color-scheme: dark; }

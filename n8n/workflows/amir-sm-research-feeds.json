@@ -1,0 +1,150 @@
+{
+  "name": "Amir SM — research from public RSS feeds",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "weeksInterval": 1,
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 9,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "name": "Weekly (Mon 09:00)"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// EDIT THIS LIST: public RSS/Atom feeds you are allowed to read (blogs, newsletters, creator-economy news).\nconst feeds = [\n  { url: 'https://example.com/replace-with-a-public-feed.xml', label: 'Example feed' },\n];\nreturn feeds.map((f) => ({ json: f }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ],
+      "name": "Feeds to read"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        480,
+        0
+      ],
+      "name": "Read feed"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const items = $input.all().slice(0, 50).map((i) => ({\n  kind: 'inspiration',\n  title: String(i.json.title || 'Untitled').slice(0, 160),\n  body: String(i.json.contentSnippet || i.json.content || '').slice(0, 1500),\n  sourceUrl: i.json.link && /^https?:\\/\\//.test(i.json.link) ? i.json.link : null,\n  sourceLabel: 'RSS',\n  tags: ['rss'],\n}));\nreturn [{ json: { source: 'rss-weekly', notes: items } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        0
+      ],
+      "name": "Shape as research notes"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:4300/api/integrations/n8n/research/ingest",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        960,
+        0
+      ],
+      "name": "Save to Amir SM Research",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE",
+          "name": "Amir SM inbound token (Authorization: Bearer <N8N_INBOUND_TOKEN>)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Weekly (Mon 09:00)": {
+      "main": [
+        [
+          {
+            "node": "Feeds to read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Feeds to read": {
+      "main": [
+        [
+          {
+            "node": "Read feed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read feed": {
+      "main": [
+        [
+          {
+            "node": "Shape as research notes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shape as research notes": {
+      "main": [
+        [
+          {
+            "node": "Save to Amir SM Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "meta": {
+    "description": "Pulls posts from public RSS feeds YOU list and saves them as research notes in Amir SM. No scraping of social platforms. Inactive by default."
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

@@ -1,0 +1,81 @@
+/* ---------- Brand mark ---------- */
+.brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--ink); }
+.brand:hover { color: var(--ink); }
+.mark {
+  width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; flex: none;
+  background: var(--accent); color: var(--accent-ink);
+  font-family: 'Nyala', 'Ebrima', 'Noto Sans Ethiopic', 'Segoe UI', sans-serif; font-size: 23px; line-height: 1;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .18), inset 0 -8px 14px rgba(0, 0, 0, .12);
+  padding-bottom: 2px;
+}
+.mark-lg { width: 56px; height: 56px; border-radius: 17px; font-size: 36px; }
+.wordmark { font-family: var(--font-display); font-size: 19px; font-weight: 600; letter-spacing: -0.01em; }
+.wordmark span { color: var(--accent); }
+
+/* ---------- App shell ---------- */
+.app { min-height: 100dvh; display: grid; grid-template-columns: var(--sidebar-w) minmax(0, 1fr); }
+.sidebar {
+  position: sticky; top: 0; height: 100dvh; display: flex; flex-direction: column; gap: var(--s-5);
+  padding: var(--s-5) var(--s-4); border-right: 1px solid var(--line); background: var(--surface);
+}
+.sidebar .brand { padding: 4px 8px 0; }
+.nav { display: flex; flex-direction: column; gap: 2px; }
+.nav-link {
+  display: flex; align-items: center; gap: 12px; padding: 0 12px; min-height: 42px; border-radius: var(--r-m);
+  color: var(--ink-2); text-decoration: none; font-weight: 550; font-size: 14.5px;
+  transition: background-color .15s var(--ease), color .15s var(--ease);
+}
+.nav-link:hover { background: var(--surface-2); color: var(--ink); }
+.nav-link[aria-current='page'] { background: var(--accent-soft); color: var(--accent); }
+.nav-link .icon { width: 19px; height: 19px; }
+.sidebar-foot { margin-top: auto; display: flex; flex-direction: column; gap: 2px; }
+.sidebar-note { padding: 10px 12px 2px; font-size: 12px; color: var(--ink-3); line-height: 1.4; }
+
+.main { min-width: 0; }
+.page { max-width: 1180px; margin: 0 auto; padding: var(--s-6) var(--s-6) var(--s-7); }
+.page-narrow { max-width: 780px; }
+.page-head { display: flex; align-items: flex-end; gap: var(--s-4); margin-bottom: var(--s-5); flex-wrap: wrap; }
+.page-head h1 { font-family: var(--font-display); font-size: 32px; letter-spacing: -0.02em; }
+.page-head .lede { color: var(--ink-2); margin-top: 4px; max-width: 62ch; }
+.page-head > div:first-child { min-width: 0; flex: 1 1 280px; }
+
+.topbar { display: none; }
+.tabbar { display: none; }
+
+@media (max-width: 767px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .sidebar { display: none; }
+  .topbar {
+    display: flex; align-items: center; gap: var(--s-2); position: sticky; top: 0; z-index: 20;
+    padding: 8px 12px 8px 16px; padding-top: calc(8px + env(safe-area-inset-top));
+    background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .topbar .mark { width: 32px; height: 32px; font-size: 21px; border-radius: 10px; }
+  .topbar .wordmark { font-size: 18px; }
+  .tabbar {
+    display: grid; grid-template-columns: repeat(6, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+    background: var(--surface); border-top: 1px solid var(--line);
+    padding-bottom: env(safe-area-inset-bottom); min-height: var(--tabbar-h);
+  }
+  .tab-link {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    min-height: var(--tabbar-h); padding: 6px 2px; color: var(--ink-2); text-decoration: none; font-size: 11px; font-weight: 600;
+    min-width: 0;
+  }
+  .tab-link span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tab-link .icon { width: 21px; height: 21px; }
+  .tab-link[aria-current='page'] { color: var(--accent); }
+  .page { padding: var(--s-4) var(--s-4) calc(var(--tabbar-h) + var(--s-6) + env(safe-area-inset-bottom)); }
+  .page-head h1 { font-size: 26px; }
+  .card-pad, .card-body { padding: var(--s-4); }
+  .card-head { padding: var(--s-3) var(--s-4); }
+}
+
+/* ---------- Auth screens ---------- */
+.auth { min-height: 100dvh; display: grid; place-items: center; padding: var(--s-5) var(--s-4); background:
+  radial-gradient(900px 500px at 15% -10%, var(--accent-soft), transparent 60%), var(--bg); }
+.auth-card { width: min(440px, 100%); padding: var(--s-6); }
+.auth-card h1 { font-family: var(--font-display); font-size: 28px; margin: var(--s-5) 0 var(--s-2); }
+.auth-theme { position: fixed; top: 12px; right: 12px; }
+@media (max-width: 480px) { .auth-card { padding: var(--s-5); } }
