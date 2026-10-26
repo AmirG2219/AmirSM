@@ -1,63 +1,91 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Icon, type IconName } from './Icon';
 import { IconButton } from './ui';
-import { Brand, Mark, Wordmark } from './Logo';
+import { Mark, Wordmark } from './Logo';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/auth';
 import { useTheme } from '../hooks/theme';
+import { safeStorage } from '../hooks/hooks';
 
-export const NAV: { to: string; label: string; icon: IconName; end?: boolean }[] = [
-  { to: '/', label: 'Home', icon: 'home', end: true },
-  { to: '/studio', label: 'Studio', icon: 'studio' },
-  { to: '/library', label: 'Library', icon: 'library' },
-  { to: '/research', label: 'Research', icon: 'research' },
+interface NavItem {
+  to: string;
+  label: string;
+  icon: IconName;
+  end?: boolean;
+}
+const MAIN: NavItem[] = [
+  { to: '/', label: 'Social Studio', icon: 'studio', end: true },
   { to: '/email', label: 'Email', icon: 'mail' },
-  { to: '/settings', label: 'Settings', icon: 'settings' },
 ];
+const SETTINGS: NavItem = { to: '/settings', label: 'Settings', icon: 'settings' };
+const ALL = [...MAIN, SETTINGS];
+const NAV_KEY = 'amirsm.nav';
 
 export function Shell() {
   const { logout } = useAuth();
   const { theme, toggle } = useTheme();
   const { pathname } = useLocation();
+  const [collapsed, setCollapsed] = useState(() => safeStorage.get(NAV_KEY) === 'collapsed');
 
-  // Move focus to the main region on navigation so keyboard / screen-reader users land on new content.
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [pathname]);
 
+  const toggleNav = () =>
+    setCollapsed((c) => {
+      safeStorage.set(NAV_KEY, c ? 'expanded' : 'collapsed');
+      return !c;
+    });
+
   const themeLabel = theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
+  // The studio owns "/" and "/studio/:id".
+  const isActive = (n: NavItem) => (n.to === '/' ? pathname === '/' || pathname.startsWith('/studio') : pathname.startsWith(n.to));
+
+  const link = (n: NavItem, quiet = false) => (
+    <NavLink key={n.to} to={n.to} end={n.end} className={`nav-link${quiet ? ' nav-quiet' : ''}`} aria-current={isActive(n) ? 'page' : undefined} aria-label={collapsed ? n.label : undefined} data-label={n.label}>
+      <Icon name={n.icon} />
+      <span className="nav-label">{n.label}</span>
+    </NavLink>
+  );
 
   return (
-    <div className="app">
+    <div className={`app${collapsed ? ' app-collapsed' : ''}`}>
       <a href="#main" className="skip-link">
         Skip to content
       </a>
-      <aside className="sidebar" aria-label="Primary">
-        <Brand to="/" />
+      <aside className="sidebar" id="sidebar" aria-label="Primary">
+        <div className="side-top">
+          <Link className="brand" to="/" aria-label="Amir SM, Social Studio">
+            <Mark />
+            <Wordmark />
+          </Link>
+          <IconButton className="side-toggle" icon={theme === 'dark' ? 'sun' : 'moon'} size="sm" label={themeLabel} onClick={toggle} />
+          <IconButton
+            className="side-toggle"
+            icon="sidebar"
+            size="sm"
+            label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-expanded={!collapsed}
+            aria-controls="sidebar"
+            onClick={toggleNav}
+          />
+        </div>
         <nav className="nav" aria-label="Main">
-          {NAV.map((n) => (
-            <NavLink key={n.to} to={n.to} end={n.end} className="nav-link">
-              <Icon name={n.icon} />
-              {n.label}
-            </NavLink>
-          ))}
+          {MAIN.map((n) => link(n))}
         </nav>
         <div className="sidebar-foot">
-          <button type="button" className="nav-link" onClick={toggle} style={{ background: 'none', border: 0, textAlign: 'left', width: '100%' }}>
-            <Icon name={theme === 'dark' ? 'sun' : 'moon'} />
-            {theme === 'dark' ? 'Light theme' : 'Dark theme'}
-          </button>
-          <button type="button" className="nav-link" onClick={() => void logout()} style={{ background: 'none', border: 0, textAlign: 'left', width: '100%' }}>
+          {link(SETTINGS, true)}
+          <button type="button" className="nav-link nav-quiet" onClick={() => void logout()} aria-label={collapsed ? 'Sign out' : undefined} data-label="Sign out">
             <Icon name="logout" />
-            Sign out
+            <span className="nav-label">Sign out</span>
           </button>
-          <p className="sidebar-note">Private workspace. Everything stays on this machine.</p>
         </div>
       </aside>
 
       <div className="main">
         <header className="topbar">
-          <NavLink to="/" className="brand" aria-label="Amir SM home">
+          <NavLink to="/" className="brand" aria-label="Amir SM, Social Studio">
             <Mark />
             <Wordmark />
           </NavLink>
@@ -71,8 +99,8 @@ export function Shell() {
       </div>
 
       <nav className="tabbar" aria-label="Main">
-        {NAV.map((n) => (
-          <NavLink key={n.to} to={n.to} end={n.end} className="tab-link">
+        {ALL.map((n) => (
+          <NavLink key={n.to} to={n.to} end={n.end} className="tab-link" aria-current={isActive(n) ? 'page' : undefined}>
             <Icon name={n.icon} />
             <span>{n.label}</span>
           </NavLink>

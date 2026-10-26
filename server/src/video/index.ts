@@ -14,12 +14,16 @@ import { validatePlan } from './validate.js';
 import { renderPlan } from './render.js';
 import { verifyOutputFile } from './verify.js';
 import { FontLibrary } from './fonts.js';
+import { technicalProfile } from './analysis.js';
+import { sampleFrames } from './frames.js';
 
 export { resolveBinaries } from './binaries.js';
 export { RenderError, RenderCancelled } from './types.js';
 export type { VideoEngine, PlanAsset, RenderRequest, RenderResult } from './types.js';
 export { ProbeError } from './probe.js';
 export { buildTimeline } from './timeline.js';
+export { technicalProfile, AnalysisError } from './analysis.js';
+export { sampleFrames, frameTimestamps, jpegSize } from './frames.js';
 
 export interface VideoEngineOptions {
   ffmpegPath: string;
@@ -117,6 +121,14 @@ export function createVideoEngine(opts: VideoEngineOptions): VideoEngine & { fon
         if (e instanceof RenderError || (e as Error).name === 'RenderCancelled') throw e;
         throw new RenderError(`Render failed: ${(e as Error).message}`, '', false);
       });
+    },
+
+    technicalProfile(filePath, info, o) {
+      return technicalProfile(ffmpegPath, filePath, info, o);
+    },
+
+    sampleFrames(filePath, info, o) {
+      return sampleFrames(ffmpegPath, filePath, info, o);
     },
 
     verifyOutput(outPath: string, plan: EditPlan): Promise<QualityReport> {

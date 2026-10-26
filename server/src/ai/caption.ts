@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { CaptionSchema, captionToText } from '../../../shared/domain.js';
 import { toToolSchema, type AiRuntime } from './client.js';
+import { hasVisual } from './prompts/analysis.js';
 import { captionSystemPrompt, captionUserPrompt } from './prompts/caption.js';
 import type { CaptionInput, CaptionResult } from './types.js';
 
@@ -39,7 +40,7 @@ export async function writeCaption(rt: AiRuntime, input: CaptionInput): Promise<
   const res = await rt.callStructured({
     role: 'copywriter',
     model: rt.cfg.primaryModel,
-    system: captionSystemPrompt(),
+    system: captionSystemPrompt({ visual: hasVisual(input.clipAnalyses) }),
     user: captionUserPrompt(input),
     toolName: 'submit_caption',
     toolDescription: 'Submit the finished Instagram caption (hook, body, call to action, hashtags without #).',

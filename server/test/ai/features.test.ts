@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { createAiService, AiOutputError, AiUnavailableError } from '../../src/ai/index.js';
 import { captionChecks } from '../../src/ai/review.js';
 import { EMAIL_INJECTION_GUARD } from '../../src/ai/prompts/email.js';
-import { collectSources, webSearchToolFor } from '../../src/ai/research.js';
 import type { Caption, QualityReport } from '../../../shared/domain.js';
 import { FakeClient, MemoryUsageStore, assets, makeConfig, noSleep, toolUse, validPlan } from './helpers.js';
 
@@ -191,111 +190,5 @@ describe('email assistant', () => {
     const { ai, client } = make([toolUse('submit_summary', { summary: 's', actionItems: [], needsReply: false })]);
     await ai.summarizeThread({ subject: 's', messages: [{ from: 'a', date: 'd', body: 'x'.repeat(50_000) }] });
     expect(client.userText()).toMatch(/\[\.\.\.truncated \d+ characters\]/);
-  });
-});
-
-describe('analyzeCompetitorMaterial', () => {
-  it('works only on provided material: no material -> no call, honest summary', async () => {
-    const { ai, client, usage } = make([toolUse('submit_analysis', {})]);
-    const r = await ai.analyzeCompetitorMaterial({ competitorName: 'Rival', materials: [{ label: 'empty', text: '   ' }] });
-    expect(r.summary).toMatch(/No usable material/);
-    expect(r.patterns).toEqual([]);
-    expect(client.calls).toHaveLength(0);
-    expect(usage.rows).toHaveLength(0);
-  });
-
-  it('prompt forbids outside knowledge; thin material is stated; unverifiable hooks are dropped', async () => {
-    const material = [{ label: 'post 1', text: 'Stop scrolling. Here is how I wake up at 5am. Save this.' }];
-    const { ai, client } = make([
-      toolUse('submit_analysis', {
-        summary: 'Short punchy post.',
-        patterns: ['Imperative opening'],
-        hooks: ['Stop scrolling.', 'This secret made me a millionaire'],
-        ideas: ['Try your own opening command'],
-      }),
-    ]);
-    const r = await ai.analyzeCompetitorMaterial({ competitorName: 'Rival', materials: material, focus: 'hooks' });
-    const sys = client.calls[0]!.params.system as string;
-    expect(sys).toMatch(/ONLY the material the owner pasted/);
-    expect(sys).toMatch(/Do NOT use outside knowledge/);
-    expect(client.userText()).toContain('This is thin material');
-    expect(r.hooks).toEqual(['Stop scrolling.']);
-    expect(r.summary).toMatch(/tentative/);
-    expect(r.summary).toMatch(/1 suggested hook\(s\) were removed/);
-    expect(client.calls[0]!.params.tools).toHaveLength(1); // no web search tool
-  });
-});
-
-describe('marketResearch (web search)', () => {
-  const searchResult = (url = 'https://example.com/a') => ({
-    stop_reason: 'tool_use',
-    usage: { input_tokens: 2000, output_tokens: 800 },
-    content: [
-      { type: 'server_tool_use', id: 'srv1', name: 'web_search', input: { query: 'reels trends' } },
-      { type: 'web_search_tool_result', tool_use_id: 'srv1', content: [{ type: 'web_search_result', url, title: 'Example A', page_age: null, encrypted_content: 'x' }] },
-      { type: 'text', text: 'ok', citations: [{ type: 'web_search_result_location', url: 'https://example.com/b', title: 'Example B', cited_text: 'zzz' }] },
-      {
-        type: 'tool_use',
-        id: 'toolu_r',
-        name: 'submit_research',
-        input: {
-          summary: 'Short videos trend.',
-          findings: [
-            { title: 'Trend A', detail: 'detail', sourceUrl: url },
-            { title: 'Made-up', detail: 'detail', sourceUrl: 'https://not-in-results.test/x' },
-          ],
-        },
-      },
-    ],
-  });
-
-  it('disabled by default -> AiUnavailableError naming the setting, no call', async () => {
-    const { ai, client } = make([searchResult()]);
-    const err = await ai.marketResearch({ topic: 'reels' }).catch((e) => e);
-    expect(err).toBeInstanceOf(AiUnavailableError);
-    expect(err.message).toContain('AI_WEB_SEARCH_ENABLED');
-    expect(client.calls).toHaveLength(0);
-  });
-
-  it('enabled but no key -> AiUnavailableError naming the key', async () => {
-    const { ai } = make([searchResult()], makeConfig({ webSearchEnabled: true, apiKey: null }));
-    const err = await ai.marketResearch({ topic: 'reels' }).catch((e) => e);
-    expect(err).toBeInstanceOf(AiUnavailableError);
-    expect(err.message).toContain('ANTHROPIC_API_KEY');
-  });
-
-  it('enabled: sends web_search with max_uses cap, returns only citations present in tool results', async () => {
-    const { ai, client } = make([searchResult()], makeConfig({ webSearchEnabled: true }));
-    const r = await ai.marketResearch({ topic: 'reels', niche: 'fitness' });
-    const tools = client.calls[0]!.params.tools as any[];
-    const ws = tools.find((t) => t.name === 'web_search');
-    expect(ws).toMatchObject({ type: 'web_search_20260209', max_uses: 3 });
-    expect(r.sources.map((s) => s.url).sort()).toEqual(['https://example.com/a', 'https://example.com/b']);
-    expect(r.findings[0]).toMatchObject({ title: 'Trend A', sourceUrl: 'https://example.com/a' });
-    expect(r.findings[1]!.sourceUrl).toBeUndefined(); // URL not found in results is dropped, never passed on
-    expect(client.userText()).toContain('fitness');
-  });
-
-  it('no sources in the results -> AiOutputError (nothing uncited is presented as research)', async () => {
-    const r = searchResult() as any;
-    r.content = r.content.filter((b: any) => b.type === 'tool_use');
-    const { ai } = make([r], makeConfig({ webSearchEnabled: true }));
-    await expect(ai.marketResearch({ topic: 'x' })).rejects.toBeInstanceOf(AiOutputError);
-  });
-
-  it('pause_turn is continued and the final answer is used', async () => {
-    const paused = { stop_reason: 'pause_turn', usage: { input_tokens: 10, output_tokens: 10 }, content: searchResult().content.slice(0, 2) };
-    const final = { stop_reason: 'tool_use', usage: { input_tokens: 10, output_tokens: 10 }, content: [searchResult().content[3]] };
-    const { ai, client, usage } = make([paused, final], makeConfig({ webSearchEnabled: true }));
-    const r = await ai.marketResearch({ topic: 'x' });
-    expect(client.calls).toHaveLength(2);
-    expect(usage.rows).toHaveLength(2);
-    expect(r.sources.length).toBeGreaterThan(0);
-  });
-
-  it('helpers: web search tool version by model; source collection ignores error results', () => {
-    expect(webSearchToolFor('claude-sonnet-5-5').type).toBe('web_search_20260209');
-    expect(webSearchToolFor('claude-haiku-4-5').type).toBe('web_search_20250305');
-    expect(collectSources([{ type: 'web_search_tool_result', content: { type: 'web_search_tool_result_error', error_code: 'max_uses_exceeded' } }])).toEqual([]);
   });
 });

@@ -9,6 +9,7 @@ export interface FixtureThread {
   messages: { direction: 'in' | 'out'; fromName: string; fromAddr: string; to: string[]; hoursAgo: number; body: string }[];
 }
 
+export const SAMPLE_LABEL = 'Sample mailbox — fictional messages';
 export const SAMPLE_OWNER_ADDRESS = 'owner@sample.example.com';
 
 export const FIXTURE_THREADS: FixtureThread[] = [

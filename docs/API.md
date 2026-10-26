@@ -41,11 +41,28 @@ Version lifecycle: `queued → planning → rendering → captioning → ready �
 - `GET /api/research/runs`
 
 ## Email
-- `GET /api/email/accounts` (note `isFixture`, `canRead`, `canSend`, `statusDetail`)
-- `GET /api/email/threads?accountId=&q=&filter=unread|needs_reply`, `GET /api/email/threads/:id`, `POST …/:id/read {read}`, `POST …/:id/summarize`
-- `POST /api/email/ai/draft {instruction, threadId?, tone?}` → `{subject, body}` · `POST /api/email/ai/tone {text, tone}` → `{text}` (nothing is sent)
-- drafts: `GET|POST /api/email/drafts`, `GET|PATCH /api/email/drafts/:id` (editing resets approval)
-- `POST /api/email/drafts/:id/approve` then `POST /api/email/drafts/:id/send`. Send fails 409 unless approved and unchanged. With the sample mailbox `sendResult.delivered=false` — show "recorded locally, not delivered".
+Real inbox client over IMAP+SMTP (see `docs/EMAIL.md`); DTOs in `shared/api.ts` (Email block). Plain text only. Credentials are never returned.
+
+**Connect**
+- `GET /api/email/providers` → `EmailProviderPreset[]` (`id, label, supported, unsupportedReason, imap, smtp, passwordKind, autoSavesSent, steps[], helpUrl, notes`). `supported:false` (Outlook/Microsoft: needs OAuth) must be shown disabled with the reason.
+- `GET /api/email/accounts` → `EmailAccountDTO[]` (`id, provider 'fixture'|'imap', presetId, label, address, isFixture, canRead, canSend, statusDetail, imapHost, syncState 'never'|'syncing'|'ok'|'error', lastSyncAt, lastError`). The sample mailbox (`isFixture:true`, label "Sample mailbox — fictional messages") is listed only while no real account exists.
+- `POST /api/email/accounts/test` body `EmailConnectInput` = `{presetId, address, password, username?, label?, imap?, smtp?, allowSelfSigned?, autoSavesSent?}` (`imap`/`smtp` = `{host, port, security:'tls'|'starttls'|'none'}`, required only for `presetId:"custom"`; `none`/`allowSelfSigned` only for localhost) → 200 `{ok, imap:{ok,code,message}, smtp:{ok,code,message}, sentFolder}`; codes `auth_failed|app_password_required|host_unreachable|timeout|tls_error|tls_mismatch|server_error|unknown`. Saves nothing. 400 `validation_failed|bad_request|unknown_provider|provider_not_supported|insecure_connection`; 429 `rate_limited` (default 6/min).
+- `POST /api/email/accounts` same body → 201 `EmailAccountDTO` (sync starts in the background: poll `GET /api/email/accounts` for `syncState`). 422 `connection_failed` (`error.details` = the test result), 409 `already_connected`.
+- `POST /api/email/accounts/:id/sync` body `{wait?: boolean}` → 202 `EmailAccountDTO` (or 200 after finishing when `wait:true`). Failures are in `syncState:'error'` + `lastError`, not an HTTP error.
+- `DELETE /api/email/accounts/:id` → `{ok:true, removed:{threads, messages, drafts}}`. Deletes stored credentials + local cache + that account's drafts; never touches the server mailbox. 400 `fixture_account` for the sample mailbox.
+
+**Read**
+- `GET /api/email/threads?mailbox=inbox|sent|all (default inbox)&accountId=&q=&filter=unread|needs_reply&serverSearch=true&limit=&before=` → `EmailThreadSummary[]` newest first (`id, accountId, subject, snippet, lastMessageAt, unread, needsReply, hasSummary, from, messageCount, hasAttachments`). `serverSearch=true` (needs `q`) also searches the mail server and imports older matches (slower; 502 `server_search_failed`). Listing also triggers a background refresh if the last sync is stale.
+- `GET /api/email/threads/:id` → `EmailThreadDetail` (`messages[]`: `id, direction, fromName, fromAddr, to, cc, date, body (plain text), bodySource 'plain'|'html_converted'|'none', truncated, unread, attachments[]`; `summary`; `serverSyncError`). Pure read, no side effects.
+- `POST /api/email/threads/:id/read {read}` → `EmailThreadDetail`. Marks read/unread locally **and on the server (`\Seen`)**; call it when the owner opens a thread. If the server could not be updated `serverSyncError` is set and it is retried at the next sync.
+- `GET /api/email/attachments/:id` (`attachments[].downloadUrl`) → streamed file: `Content-Disposition: attachment`, `nosniff`, sandbox CSP, ≤ 25 MB (413 `attachment_too_large`), 404 when gone from the server. Attachments have `risky:true` for executable/script/HTML types: warn before opening.
+- `POST /api/email/threads/:id/summarize` → `EmailThreadDetail` (AI; 409 `ai_unavailable` without a key).
+- `POST /api/email/ai/draft {instruction, threadId?, tone?}` → `{subject, body}` · `POST /api/email/ai/tone {text, tone}` → `{text}` (nothing is sent).
+
+**Write / send**
+- drafts: `GET /api/email/drafts?status=`, `POST /api/email/drafts {accountId, threadId?, to[], cc?, subject, body, aiAssisted?}` (201; in a thread the subject becomes `Re: …`), `GET|PATCH /api/email/drafts/:id` (editing resets approval). Recipients: plain addresses only, max 10.
+- `POST /api/email/drafts/:id/approve` then `POST /api/email/drafts/:id/send` → `EmailDraftDTO`. 409 `not_approved` / `changed_since_approval` / `send_in_progress` / `already_sent`; 502 `send_failed` (message = the real provider error; draft kept as `status:'failed'`, approve again to retry). `sendResult.delivered:true` = accepted by the outgoing mail server (not proof of receipt); sample mailbox: `delivered:false`, "recorded locally, NOT delivered".
+- Out of scope: outgoing attachments, Bcc, HTML mail, delete/move.
 
 ## n8n (machine, bearer `N8N_INBOUND_TOKEN`, no cookie)
 `GET /api/integrations/n8n/status|digest`, `POST /api/integrations/n8n/research/ingest`.

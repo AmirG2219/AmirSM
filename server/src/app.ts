@@ -53,7 +53,7 @@ export async function buildApp(ctx: AppContext, opts: BuildOptions = {}): Promis
   // Built web app (production). In dev, Vite serves the UI and proxies /api here.
   const webDist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../web/dist');
   if (fs.existsSync(path.join(webDist, 'index.html'))) {
-    await app.register(fastifyStatic, { root: webDist, wildcard: false });
+    await app.register(fastifyStatic, { root: webDist });
     app.setNotFoundHandler((req, reply) => {
       if (req.url.startsWith('/api/')) return reply.code(404).send({ error: { code: 'not_found', message: 'No such endpoint.' } });
       return reply.type('text/html').send(fs.createReadStream(path.join(webDist, 'index.html')));

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { EditPlanSchema } from '../../../shared/editPlan.js';
 import { toToolSchema, type AiRuntime } from './client.js';
+import { hasVisual } from './prompts/analysis.js';
 import { plannerSystemPrompt, plannerUserPrompt } from './prompts/planner.js';
 import { planWithRules } from './rules-planner.js';
 import { sanitizePlan } from './sanitize.js';
@@ -38,7 +39,7 @@ export async function planEdit(
     const res = await rt.callStructured({
       role: 'creative_director',
       model: rt.cfg.primaryModel,
-      system: plannerSystemPrompt(),
+      system: plannerSystemPrompt({ visual: hasVisual(input.clipAnalyses) }),
       user: plannerUserPrompt(input),
       toolName: 'submit_edit_plan',
       toolDescription: 'Submit the complete edit plan (and your rationale for the owner) for the video engine to render.',

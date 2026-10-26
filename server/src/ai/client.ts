@@ -35,6 +35,8 @@ export interface StructuredCall<T> {
   model: string;
   system: string;
   user: string;
+  /** full user content blocks (text + image blocks); when set it replaces `user` */
+  userContent?: unknown[];
   toolName: string;
   toolDescription: string;
   zodSchema: z.ZodType<T>;
@@ -203,7 +205,7 @@ export class AiRuntime {
   async callStructured<T>(o: StructuredCall<T>): Promise<StructuredResult<T>> {
     this.requireAvailable('This feature');
     const maxRepairs = o.maxRepairs ?? 1;
-    const messages: any[] = [{ role: 'user', content: o.user }];
+    const messages: any[] = [{ role: 'user', content: o.userContent ?? o.user }];
     const tool = { name: o.toolName, description: o.toolDescription, input_schema: o.jsonSchema };
     const system = `${o.system}\n\nOUTPUT FORMAT: respond by calling the tool "${o.toolName}" exactly once with your complete answer. Do not answer in plain text.`;
     const allContent: any[] = [];

@@ -1,5 +1,5 @@
 /** Test helpers for the AI layer. Nothing here touches the network. */
-import type { AppConfig } from '../../src/config.js';
+import { loadConfig, type AppConfig } from '../../src/config.js';
 import type { AssetBrief, UsageRecord, UsageStore } from '../../src/ai/types.js';
 import type { EditPlanInput } from '../../../shared/editPlan.js';
 import { EditPlanSchema } from '../../../shared/editPlan.js';
@@ -27,24 +27,11 @@ export class MemoryUsageStore implements UsageStore {
 }
 
 export function makeConfig(over: Partial<AppConfig['ai']> = {}): AppConfig {
+  // start from the real defaults so unrelated config sections (email, paths…) can evolve without breaking these tests
+  const base = loadConfig({ DATA_DIR: '.' } as NodeJS.ProcessEnv, { readDotEnv: false });
   return {
-    host: '127.0.0.1',
-    port: 0,
-    dataDir: '.',
-    maxUploadBytes: 1,
-    isProd: false,
-    ai: {
-      apiKey: 'test-key-not-real',
-      primaryModel: 'claude-sonnet-5-5',
-      fastModel: 'claude-haiku-5-5',
-      dailyCallLimit: 60,
-      dailyTokenLimit: 400_000,
-      webSearchEnabled: false,
-      ...over,
-    },
-    email: { provider: 'fixture', resendApiKey: null, resendFrom: null },
-    n8n: { baseUrl: null, webhookSecret: null, inboundToken: null },
-    paths: { db: '', uploads: '', renders: '', exports: '', thumbs: '', work: '' },
+    ...base,
+    ai: { apiKey: 'test-key-not-real', primaryModel: 'claude-sonnet-5-5', fastModel: 'claude-haiku-5-5', dailyCallLimit: 60, dailyTokenLimit: 400_000, ...over },
   };
 }
 

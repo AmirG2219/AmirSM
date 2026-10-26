@@ -15,13 +15,28 @@ describe('email workspace (sample mailbox)', () => {
   it('labels the mailbox as a local sample and lists/searches threads', async () => {
     const acc = (await t.api('GET', '/api/email/accounts')).json[0];
     expect(acc.isFixture).toBe(true);
-    expect(acc.label).toMatch(/sample/i);
+    expect(acc.label).toBe('Sample mailbox — fictional messages');
+    expect(acc).toMatchObject({ provider: 'fixture', presetId: null, syncState: 'ok', lastError: null, imapHost: null });
     const all = (await t.api('GET', '/api/email/threads')).json;
     expect(all.length).toBeGreaterThanOrEqual(4);
     const hit = (await t.api('GET', '/api/email/threads?q=invoice')).json;
     expect(hit.length).toBe(1);
     const thread = (await t.api('GET', `/api/email/threads/${threadId}`)).json;
     expect(thread.messages.length).toBeGreaterThan(0);
+  });
+
+  it('reports the sample mailbox truthfully in Settings, lists presets, and has no attachments to download', async () => {
+    const status = (await t.api('GET', '/api/settings/status')).json;
+    expect(status.integrations.find((i: { id: string }) => i.id === 'email')).toMatchObject({ state: 'fixture', detail: expect.stringMatching(/fictional/) });
+    expect((await t.api('GET', '/api/email/providers')).json.some((p: { id: string }) => p.id === 'gmail')).toBe(true);
+    expect((await t.api('GET', '/api/email/attachments/att_nothing')).status).toBe(404);
+    expect((await t.api('POST', `/api/email/accounts/${accountId}/sync`, { wait: true })).json).toMatchObject({ isFixture: true, syncState: 'ok' });
+  });
+
+  it('opening a sample thread marks it read and unread again', async () => {
+    const unread = (await t.api('GET', '/api/email/threads?filter=unread')).json[0];
+    expect((await t.api('POST', `/api/email/threads/${unread.id}/read`, { read: true })).json.unread).toBe(false);
+    expect((await t.api('POST', `/api/email/threads/${unread.id}/read`, { read: false })).json.unread).toBe(true);
   });
 
   it('AI helpers fail truthfully without an API key', async () => {

@@ -1,16 +1,13 @@
 import type {
   AssetDTO,
-  CompetitorDTO,
+  AuthState,
   EmailAccountDTO,
+  EmailConnectInput,
+  EmailConnectionTestResult,
+  EmailProviderPreset,
   EmailDraftDTO,
   EmailThreadDetail,
   EmailThreadSummary,
-  LibraryItem,
-  ResearchCapabilities,
-  ResearchNoteDTO,
-  ResearchRunDTO,
-  AuthState,
-  DashboardDTO,
   ProjectDetail,
   ProjectSummary,
   SettingsStatus,
@@ -123,24 +120,27 @@ export function uploadFile(
   return { promise, abort: () => xhr.abort() };
 }
 
+export interface ProjectListParams {
+  status?: string;
+  q?: string;
+  includeArchived?: boolean;
+}
+
 const qs = (o: Record<string, string | undefined>) => {
   const p = new URLSearchParams();
   for (const [k, v] of Object.entries(o)) if (v) p.set(k, v);
   const s = p.toString();
   return s ? `?${s}` : '';
 };
-const del = <T>(path: string) => request<T>('DELETE', path);
 
-export interface CompetitorInput { name: string; handle?: string | null; url?: string | null; notes?: string }
-export interface NoteInput { kind: ResearchNoteDTO['kind']; title: string; body?: string; sourceUrl?: string | null; sourceLabel?: string | null; competitorId?: string | null; tags?: string[] }
-export interface DraftInput { accountId: string; threadId?: string | null; to: string[]; cc?: string[]; subject: string; body: string; aiAssisted?: boolean }
-export interface CompetitorAnalysis { summary: string; patterns: string[]; hooks: string[]; ideas: string[] }
-export interface MarketResearchResult { summary: string; findings: { title: string; detail: string; sourceUrl?: string }[]; sources: { title: string; url: string }[] }
-
-export interface ProjectListParams {
-  status?: string;
-  q?: string;
-  includeArchived?: boolean;
+export interface DraftInput {
+  accountId: string;
+  threadId?: string | null;
+  to: string[];
+  cc?: string[];
+  subject: string;
+  body: string;
+  aiAssisted?: boolean;
 }
 
 export const api = {
@@ -150,16 +150,11 @@ export const api = {
     login: (password: string) => post<{ ok: true }>('/api/auth/login', { password }),
     logout: () => post<{ ok: true }>('/api/auth/logout'),
   },
-  dashboard: (signal?: AbortSignal) => get<DashboardDTO>('/api/dashboard', signal),
   settingsStatus: (signal?: AbortSignal) => get<SettingsStatus>('/api/settings/status', signal),
   projects: {
     list: (p: ProjectListParams = {}, signal?: AbortSignal) => {
-      const qs = new URLSearchParams();
-      if (p.status) qs.set('status', p.status);
-      if (p.q) qs.set('q', p.q);
-      if (p.includeArchived) qs.set('includeArchived', 'true');
-      const s = qs.toString();
-      return get<ProjectSummary[]>(`/api/projects${s ? `?${s}` : ''}`, signal);
+      const q = qs({ status: p.status, q: p.q, includeArchived: p.includeArchived ? 'true' : undefined });
+      return get<ProjectSummary[]>(`/api/projects${q}`, signal);
     },
     create: (b: { title: string; brief?: string; stylePreset?: StylePreset; format?: OutputFormat }) => post<ProjectDetail>('/api/projects', b),
     get: (id: string, signal?: AbortSignal) => get<ProjectDetail>(`/api/projects/${encodeURIComponent(id)}`, signal),
@@ -181,24 +176,15 @@ export const api = {
     approve: (id: string) => post<VersionDTO>(`/api/versions/${encodeURIComponent(id)}/approve`),
     captionUrl: (id: string, download = false) => `/api/versions/${encodeURIComponent(id)}/caption.txt${download ? '?download=1' : ''}`,
   },
-  library: (p: { q?: string; kind?: string; status?: string; projectId?: string }, signal?: AbortSignal) => get<LibraryItem[]>(`/api/library${qs(p)}`, signal),
-  research: {
-    capabilities: (signal?: AbortSignal) => get<ResearchCapabilities>('/api/research/capabilities', signal),
-    competitors: (signal?: AbortSignal) => get<CompetitorDTO[]>('/api/research/competitors', signal),
-    addCompetitor: (b: CompetitorInput) => post<CompetitorDTO>('/api/research/competitors', b),
-    updateCompetitor: (id: string, b: Partial<CompetitorInput>) => patch<CompetitorDTO>(`/api/research/competitors/${encodeURIComponent(id)}`, b),
-    deleteCompetitor: (id: string) => del<{ ok: true }>(`/api/research/competitors/${encodeURIComponent(id)}`),
-    analyze: (id: string, b: { materials: { label: string; text: string; url?: string }[]; focus?: string }) =>
-      post<ResearchRunDTO>(`/api/research/competitors/${encodeURIComponent(id)}/analyze`, b),
-    notes: (p: { kind?: string; q?: string; competitorId?: string }, signal?: AbortSignal) => get<ResearchNoteDTO[]>(`/api/research/notes${qs(p)}`, signal),
-    addNote: (b: NoteInput) => post<ResearchNoteDTO>('/api/research/notes', b),
-    deleteNote: (id: string) => del<{ ok: true }>(`/api/research/notes/${encodeURIComponent(id)}`),
-    market: (b: { topic: string; niche?: string }) => post<ResearchRunDTO>('/api/research/market', b),
-    runs: (signal?: AbortSignal) => get<ResearchRunDTO[]>('/api/research/runs', signal),
-  },
   email: {
     accounts: (signal?: AbortSignal) => get<EmailAccountDTO[]>('/api/email/accounts', signal),
-    threads: (p: { accountId?: string; q?: string; filter?: string }, signal?: AbortSignal) => get<EmailThreadSummary[]>(`/api/email/threads${qs(p)}`, signal),
+    providers: (signal?: AbortSignal) => get<EmailProviderPreset[]>('/api/email/providers', signal),
+    testConnection: (b: EmailConnectInput) => post<EmailConnectionTestResult>('/api/email/accounts/test', b),
+    connect: (b: EmailConnectInput) => post<EmailAccountDTO>('/api/email/accounts', b),
+    disconnect: (id: string) => request<{ ok: true }>('DELETE', `/api/email/accounts/${encodeURIComponent(id)}`),
+    sync: (id: string, wait = false) => post<EmailAccountDTO>(`/api/email/accounts/${encodeURIComponent(id)}/sync`, wait ? { wait: true } : {}),
+    threads: (p: { accountId?: string; q?: string; filter?: string; mailbox?: 'inbox' | 'sent' | 'all'; serverSearch?: boolean; limit?: number }, signal?: AbortSignal) =>
+      get<EmailThreadSummary[]>(`/api/email/threads${qs({ accountId: p.accountId, q: p.q, filter: p.filter, mailbox: p.mailbox, serverSearch: p.serverSearch ? 'true' : undefined, limit: p.limit ? String(p.limit) : undefined })}`, signal),
     thread: (id: string, signal?: AbortSignal) => get<EmailThreadDetail>(`/api/email/threads/${encodeURIComponent(id)}`, signal),
     markRead: (id: string, read: boolean) => post<EmailThreadDetail>(`/api/email/threads/${encodeURIComponent(id)}/read`, { read }),
     summarize: (id: string) => post<EmailThreadDetail>(`/api/email/threads/${encodeURIComponent(id)}/summarize`),
@@ -210,5 +196,4 @@ export const api = {
     approve: (id: string) => post<EmailDraftDTO>(`/api/email/drafts/${encodeURIComponent(id)}/approve`),
     send: (id: string) => post<EmailDraftDTO>(`/api/email/drafts/${encodeURIComponent(id)}/send`),
   },
-  n8nTest: () => post<unknown>('/api/settings/n8n/test'),
 };

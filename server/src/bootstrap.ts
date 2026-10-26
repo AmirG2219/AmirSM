@@ -6,7 +6,7 @@ import type { VideoEngine } from './video/types.js';
 import { createAiService } from './ai/index.js';
 import { createVideoEngine, resolveBinaries } from './video/index.js';
 import { JobRunner } from './jobs/runner.js';
-import { EmailService } from './email/service.js';
+import { EmailService, type EmailServiceOptions } from './email/service.js';
 import { createProduceHandler } from './orchestrator.js';
 import type { AppContext } from './context.js';
 
@@ -36,6 +36,7 @@ export interface Overrides {
   video?: VideoEngine;
   db?: Db;
   fetchImpl?: typeof fetch;
+  email?: EmailServiceOptions;
   jobOptions?: ConstructorParameters<typeof JobRunner>[1];
 }
 
@@ -46,7 +47,7 @@ export function createContext(config: AppConfig, overrides: Overrides = {}): App
   const ai = overrides.ai ?? createAiService({ config, usage });
   const video = overrides.video ?? createVideoEngine(resolveBinaries());
   const jobs = new JobRunner(db, overrides.jobOptions);
-  const email = new EmailService(config, db, overrides.fetchImpl);
+  const email = new EmailService(config, db, overrides.email);
   const ctx: AppContext = { config, db, ai, video, jobs, email };
   jobs.register('produce_version', createProduceHandler(ctx));
   // Leftover scratch from an interrupted run is ours to clear (work/ only ever holds temp render files).

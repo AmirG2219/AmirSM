@@ -1,39 +1,44 @@
-/* Design tokens. Warm editorial palette, one clay accent. Dark values are declared twice on purpose
-   (system preference + explicit data-theme) so the manual toggle always wins. */
+/* Design tokens. Calm cream canvas, deep slate ink, one teal accent.
+   Dark values are declared twice on purpose (system preference + explicit data-theme) so the manual toggle always wins. */
 :root {
-  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Nyala', 'Ebrima', 'Noto Sans Ethiopic', 'Helvetica Neue', Arial, sans-serif;
-  --font-display: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, 'Nyala', 'Noto Serif Ethiopic', serif;
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Nyala', 'Ebrima', 'Noto Sans Ethiopic', 'Helvetica Neue', Arial, sans-serif;
+  --font-display: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Nyala', 'Noto Serif Ethiopic', serif;
   --font-mono: ui-monospace, 'Cascadia Code', 'SF Mono', Consolas, monospace;
 
-  --bg: #f4f0e9;
-  --bg-sunken: #ebe5da;
-  --surface: #fbf9f5;
-  --surface-2: #f6f2ea;
-  --surface-raised: #ffffff;
-  --ink: #201b15;
-  --ink-2: #5a5146;
-  --ink-3: #75695b;
-  --line: #e3dccf;
-  --line-strong: #cfc6b5;
-  --accent: #a4491f;
-  --accent-hover: #8b3d17;
+  --bg: #f2eee6;
+  --bg-sunken: #e8e3d9;
+  --surface: #f7f5f0;
+  --surface-2: #eeeae2;
+  --surface-raised: #fcfbf8;
+  --ink: #192731;
+  --ink-2: #3f505b;
+  --ink-3: #566872;
+  --line: #dce4e7;
+  --line-strong: #bfcad0;
+  --accent: #1f686b;
+  --accent-hover: #17585b;
   --accent-ink: #ffffff;
-  --accent-soft: #f4e4d8;
-  --accent-line: #e5c6b0;
-  --ok: #3b6a47;
-  --ok-soft: #e2ece0;
-  --warn: #86570a;
-  --warn-soft: #f6ebd1;
-  --err: #a23729;
-  --err-soft: #f7e0db;
-  --info: #3a5871;
-  --info-soft: #e1eaf1;
-  --scrim: rgba(32, 27, 21, 0.45);
-  --shadow-pop: 0 12px 40px rgba(32, 27, 21, 0.18);
+  --accent-soft: #dfeae8;
+  --accent-line: #b3cecd;
+  /* primary button */
+  --btn-bg: #1f686b;
+  --btn-bg-hover: #17585b;
+  --btn-ink: #ffffff;
+  --ok: #2b6a4d;
+  --ok-soft: #e0ece5;
+  --warn: #7f5710;
+  --warn-soft: #f3e9d1;
+  --err: #a13a33;
+  --err-soft: #f5e1de;
+  --info: #2f5d74;
+  --info-soft: #e0eaee;
+  --scrim: rgba(25, 39, 49, 0.5);
+  --shadow-pop: 0 16px 48px rgba(25, 39, 49, 0.18);
 
-  --r-s: 6px;
-  --r-m: 10px;
-  --r-l: 16px;
+  --r-s: 8px;
+  --r-m: 14px;
+  --r-l: 24px;
+  --r-pill: 999px;
   --s-1: 4px;
   --s-2: 8px;
   --s-3: 12px;
@@ -41,66 +46,41 @@
   --s-5: 24px;
   --s-6: 32px;
   --s-7: 48px;
-  --sidebar-w: 236px;
+  --sidebar-w: 248px;
+  --sidebar-w-collapsed: 76px;
   --tabbar-h: 62px;
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    --bg: #14110d;
-    --bg-sunken: #0f0d0a;
-    --surface: #1b1813;
-    --surface-2: #211d17;
-    --surface-raised: #272219;
-    --ink: #f1eadf;
-    --ink-2: #b9ae9e;
-    --ink-3: #978c7c;
-    --line: #2d2820;
-    --line-strong: #433b30;
-    --accent: #e8946a;
-    --accent-hover: #f2a784;
-    --accent-ink: #1c0f07;
-    --accent-soft: #382316;
-    --accent-line: #5b3824;
-    --ok: #8fc79c;
-    --ok-soft: #1b2a1f;
-    --warn: #e2b55f;
-    --warn-soft: #2e2511;
-    --err: #f0948a;
-    --err-soft: #35191a;
-    --info: #93b8d4;
-    --info-soft: #192733;
-    --scrim: rgba(0, 0, 0, 0.6);
-    --shadow-pop: 0 12px 40px rgba(0, 0, 0, 0.5);
-  }
-}
 :root[data-theme='dark'] {
-  --bg: #14110d;
-  --bg-sunken: #0f0d0a;
-  --surface: #1b1813;
-  --surface-2: #211d17;
-  --surface-raised: #272219;
-  --ink: #f1eadf;
-  --ink-2: #b9ae9e;
-  --ink-3: #978c7c;
-  --line: #2d2820;
-  --line-strong: #433b30;
-  --accent: #e8946a;
-  --accent-hover: #f2a784;
-  --accent-ink: #1c0f07;
-  --accent-soft: #382316;
-  --accent-line: #5b3824;
-  --ok: #8fc79c;
-  --ok-soft: #1b2a1f;
-  --warn: #e2b55f;
-  --warn-soft: #2e2511;
+  --bg: #131e26;
+  --bg-sunken: #0f181f;
+  --surface: #192731;
+  --surface-2: #1f313c;
+  --surface-raised: #243743;
+  --ink: #f4f1ea;
+  --ink-2: #c6d2d8;
+  --ink-3: #93a7b1;
+  --line: #2b3e49;
+  --line-strong: #40565f;
+  --accent: #44a3a6;
+  --accent-hover: #5bb4b7;
+  --accent-ink: #0c1a1f;
+  --accent-soft: #132d33;
+  --accent-line: #2a5359;
+  --btn-bg: #f7f5f0;
+  --btn-bg-hover: #ffffff;
+  --btn-ink: #192731;
+  --ok: #86c9a5;
+  --ok-soft: #1b3328;
+  --warn: #e1b865;
+  --warn-soft: #34291a;
   --err: #f0948a;
-  --err-soft: #35191a;
-  --info: #93b8d4;
-  --info-soft: #192733;
-  --scrim: rgba(0, 0, 0, 0.6);
-  --shadow-pop: 0 12px 40px rgba(0, 0, 0, 0.5);
+  --err-soft: #3a2125;
+  --info: #8fbad0;
+  --info-soft: #1b3140;
+  --scrim: rgba(5, 12, 17, 0.65);
+  --shadow-pop: 0 16px 48px rgba(0, 0, 0, 0.5);
 }
 :root[data-theme='light'] { color-scheme: light; }
 :root[data-theme='dark'] { color-scheme: dark; }

@@ -39,13 +39,12 @@ describe('daily limits', () => {
     expect(usage.rows).toHaveLength(1);
   });
 
-  it('limits apply to every feature (caption, email, research)', async () => {
+  it('limits apply to every feature (caption, email)', async () => {
     const usage = new MemoryUsageStore();
     usage.seed(1);
     const { ai, client } = make([toolUse('x', {})], { cfg: makeConfig({ dailyCallLimit: 1 }), usage });
     await expect(ai.draftEmail({ instruction: 'hi' })).rejects.toBeInstanceOf(AiLimitError);
     await expect(ai.summarizeThread({ subject: 's', messages: [] })).rejects.toBeInstanceOf(AiLimitError);
-    await expect(ai.analyzeCompetitorMaterial({ competitorName: 'c', materials: [{ label: 'a', text: 'some text' }] })).rejects.toBeInstanceOf(AiLimitError);
     expect(client.calls).toHaveLength(0);
   });
 
@@ -159,8 +158,6 @@ describe('availability', () => {
     await expect(ai.summarizeThread({ subject: 's', messages: [] })).rejects.toBeInstanceOf(AiUnavailableError);
     await expect(ai.draftEmail({ instruction: 'x' })).rejects.toBeInstanceOf(AiUnavailableError);
     await expect(ai.adjustTone({ text: 'x', tone: 'warm' })).rejects.toBeInstanceOf(AiUnavailableError);
-    await expect(ai.analyzeCompetitorMaterial({ competitorName: 'c', materials: [{ label: 'a', text: 'text' }] })).rejects.toBeInstanceOf(AiUnavailableError);
-    await expect(ai.marketResearch({ topic: 't' })).rejects.toBeInstanceOf(AiUnavailableError);
     expect(client.calls).toHaveLength(0);
     expect(usage.rows).toHaveLength(0);
   });
@@ -168,25 +165,22 @@ describe('availability', () => {
 
 describe('status()', () => {
   it('unconfigured: says so and says what happens instead', () => {
-    const { ai } = make([], { cfg: makeConfig({ apiKey: null, webSearchEnabled: true }) });
+    const { ai } = make([], { cfg: makeConfig({ apiKey: null }) });
     const s = ai.status();
     expect(s.configured).toBe(false);
-    expect(s.webSearchEnabled).toBe(false);
     expect(s.detail).toMatch(/ANTHROPIC_API_KEY is not set/);
     expect(s.detail).toMatch(/Basic auto-edit/);
-    expect(s.detail).toMatch(/Web search is enabled in settings but needs the API key/);
   });
 
   it('configured: does not claim the key was verified; reports limits and live usage', () => {
     const usage = new MemoryUsageStore();
     usage.seed(2, 100);
-    const { ai } = make([], { usage, cfg: makeConfig({ dailyCallLimit: 10, dailyTokenLimit: 1000, webSearchEnabled: true }) });
+    const { ai } = make([], { usage, cfg: makeConfig({ dailyCallLimit: 10, dailyTokenLimit: 1000 }) });
     const s = ai.status();
     expect(s).toMatchObject({
       configured: true,
       primaryModel: 'claude-sonnet-5-5',
       fastModel: 'claude-haiku-5-5',
-      webSearchEnabled: true,
       limits: { dailyCalls: 10, dailyTokens: 1000 },
       usage: { callsToday: 2, tokensToday: 200 },
     });

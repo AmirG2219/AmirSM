@@ -8,12 +8,15 @@ import { writeCaption } from './caption.js';
 import { adjustTone, draftEmail, summarizeThread } from './email.js';
 import { planEdit } from './planner.js';
 import { reviewQuality } from './review.js';
+import { analyzeClips } from './vision.js';
 import type { AiService, AiStatus } from './types.js';
 
 export * from './types.js';
 export type { AiServiceDeps } from './client.js';
 export { planWithRules } from './rules-planner.js';
 export { sanitizePlan } from './sanitize.js';
+export { pickRanges } from './window-select.js';
+export { framesForDuration } from './vision.js';
 
 export function createAiService(deps: AiServiceDeps): AiService {
   const rt = new AiRuntime(deps);
@@ -48,6 +51,7 @@ export function createAiService(deps: AiServiceDeps): AiService {
     planEdit: (input, opts) => planEdit(rt, input, opts),
     writeCaption: (input) => writeCaption(rt, input),
     reviewQuality: (input) => reviewQuality(rt, input),
+    analyzeClips: (input) => analyzeClips(rt, input),
     summarizeThread: (thread) => summarizeThread(rt, thread),
     draftEmail: (input) => draftEmail(rt, input),
     adjustTone: (input) => adjustTone(rt, input),

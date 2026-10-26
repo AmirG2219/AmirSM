@@ -1,4 +1,3 @@
-import type { VersionDTO } from '@shared/api';
 import type { ProjectStatus, VersionStatus } from '@shared/domain';
 import type { OutputFormat, StylePreset } from '@shared/editPlan';
 
@@ -76,7 +75,7 @@ export const VERSION_STATUS: Record<VersionStatus, { label: string; tone: Tone }
   superseded: { label: 'Superseded', tone: 'neutral' },
 };
 
-export function versionStatusInfo(v: Pick<VersionDTO, 'status'>): { label: string; tone: Tone } {
+export function versionStatusInfo(v: { status: VersionStatus }): { label: string; tone: Tone } {
   return VERSION_STATUS[v.status];
 }
 
@@ -87,8 +86,9 @@ export const STYLE_OPTIONS: { id: StylePreset; label: string; blurb: string }[] 
   { id: 'day-in-the-life', label: 'Day in the life', blurb: 'Brisk, chronological cuts that feel candid and lived-in.' },
   { id: 'calm-cinematic', label: 'Calm cinematic', blurb: 'Slower pacing, soft transitions and a restrained, filmic look.' },
   { id: 'motivation', label: 'Motivation', blurb: 'Punchy cuts with bold on-screen text and a driving rhythm.' },
+  { id: 'high-energy', label: 'High energy', blurb: 'Fast, rhythmic cuts and a bright, punchy look.' },
   { id: 'storytelling', label: 'Storytelling', blurb: 'A clear beginning, middle and end, paced around your narrative.' },
-  { id: 'custom', label: 'Custom', blurb: 'No preset. The edit follows your instructions as closely as it can.' },
+  { id: 'custom', label: 'Let my description decide', blurb: 'No preset. The edit follows your description as closely as it can.' },
 ];
 
 export const FORMAT_OPTIONS: { id: OutputFormat; label: string; blurb: string }[] = [

@@ -16,6 +16,8 @@ import {
 import { detectLimitations } from './limitations.js';
 import { sanitizePlan } from './sanitize.js';
 import { cleanUserLines, evenCues } from './subtitles.js';
+import { fmtRange, majorIssueLabels, pickRanges } from './window-select.js';
+import type { TechnicalProfile } from '../../../shared/analysis.js';
 import { AiOutputError, type AssetBrief, type PlanEditInput, type PlanEditResult } from './types.js';
 
 interface PresetDefaults {
@@ -35,6 +37,7 @@ const PRESETS: Record<StylePreset, PresetDefaults> = {
   'calm-cinematic': { label: 'Calm cinematic', targetMs: 30_000, perClipMs: 6_000, transition: { type: 'crossfade', durationMs: 600 }, look: 'cinematic', vignette: true, fadeInMs: 800, fadeOutMs: 1000, titleSize: 'medium', titlePosition: 'center' },
   'day-in-the-life': { label: 'Day in the life', targetMs: 30_000, perClipMs: 3_500, transition: { type: 'cut', durationMs: 500 }, look: 'warm', vignette: false, fadeInMs: 300, fadeOutMs: 500, titleSize: 'medium', titlePosition: 'lower-third' },
   motivation: { label: 'Motivation', targetMs: 25_000, perClipMs: 2_500, transition: { type: 'cut', durationMs: 500 }, look: 'cinematic', vignette: true, fadeInMs: 200, fadeOutMs: 500, titleSize: 'large', titlePosition: 'center' },
+  'high-energy': { label: 'High energy', targetMs: 22_000, perClipMs: 1_800, transition: { type: 'cut', durationMs: 500 }, look: 'bright', vignette: false, fadeInMs: 100, fadeOutMs: 250, titleSize: 'large', titlePosition: 'top' },
   storytelling: { label: 'Storytelling', targetMs: 40_000, perClipMs: 5_000, transition: { type: 'crossfade', durationMs: 400 }, look: 'natural', vignette: false, fadeInMs: 500, fadeOutMs: 800, titleSize: 'small', titlePosition: 'lower-third' },
   custom: { label: 'Custom', targetMs: 30_000, perClipMs: 4_000, transition: { type: 'cut', durationMs: 500 }, look: 'natural', vignette: false, fadeInMs: 300, fadeOutMs: 500, titleSize: 'medium', titlePosition: 'center' },
 };
@@ -110,11 +113,29 @@ export function planWithRules(input: PlanEditInput, extraNotes: string[] = []): 
   const gross = Math.min(p.targetMs, REELS_MAX_MS) + Math.max(0, segCount() - 1) * transMs;
   const factor = Math.min(1, gross / Math.max(1, capacity()));
 
+  // technical measurements (local signal analysis, no AI), keyed by asset
+  const tech = new Map<string, TechnicalProfile>();
+  for (const a of input.clipAnalyses ?? []) if (a.source === 'technical' && a.technical && a.technical.windows.length > 0) tech.set(a.assetId, a.technical);
+
   const slots: Slot[] = [];
+  let measuredClips = 0;
   used.forEach((asset, i) => {
     const n = k[i]!;
     const maxLen = perExcerptMax(i);
     const len = Math.min(maxLen, Math.max(Math.min(MIN_SEG_MS, maxLen), Math.round(maxLen * factor)));
+    const profile = tech.get(asset.id);
+    const picks = profile ? pickRanges(profile, len, n, input.preset) : [];
+    if (profile && picks.length === n) {
+      measuredClips++;
+      for (const pk of picks) slots.push({ asset, maxLen, start: pk.startMs, len: pk.endMs - pk.startMs });
+      const skipped = profile.issues.filter((x) => x.code !== 'silent_audio' && x.share < 1 && x.ranges.some((rg) => picks.every((pk) => rg.endMs <= pk.startMs || rg.startMs >= pk.endMs)));
+      if (skipped.length > 0) {
+        notes.push(`"${asset.name}": used ${picks.map((pk) => fmtRange(pk.startMs, pk.endMs)).join(', ')}, avoiding parts measured as ${skipped.map((x) => x.label.replace(/ (.*)/, '')).join(' / ')}.`);
+      }
+      const bad = majorIssueLabels(profile);
+      if (bad.length > 0) notes.push(`"${asset.name}" measures as ${bad.join(' / ')} for most of its length; it is still included because the Basic auto-edit keeps your clips.`);
+      return;
+    }
     for (let j = 0; j < n; j++) {
       const room = asset.durationMs - len;
       // single excerpt: start a little into the clip (the very first frames are often unstable); several: spread evenly
@@ -122,6 +143,9 @@ export function planWithRules(input: PlanEditInput, extraNotes: string[] = []): 
       slots.push({ asset, maxLen, start, len });
     }
   });
+  if (measuredClips > 0) {
+    notes.push(`Trim points for ${measuredClips} of ${used.length} clip(s) were chosen from local signal measurements (exposure, sharpness, steadiness, scene cuts). The Basic auto-edit still does not know what is in the shots.`);
+  }
 
   const segments: Segment[] = slots.slice(0, MAX_SEGMENTS).map((s, idx) => {
     const landscape = s.asset.width > s.asset.height;
@@ -206,7 +230,7 @@ export function planWithRules(input: PlanEditInput, extraNotes: string[] = []): 
   if (finalMs > MAX_OUTPUT_DURATION_MS) throw new AiOutputError('Basic auto-edit exceeded the maximum duration.');
   return {
     plan: sanitized.plan,
-    rationale: `This is a Basic auto-edit (no AI): your clips were placed in the order you gave them using the "${p.label}" preset (${p.look} look, ${p.transition.type === 'cut' ? 'hard cuts' : `${p.transition.type} transitions`}, fade in/out, loudness normalised). It cannot read your brief or see the footage, so trim points are chosen by clip length only.`,
+    rationale: `This is a Basic auto-edit (no AI): your clips were placed in the order you gave them using the "${p.label}" preset (${p.look} look, ${p.transition.type === 'cut' ? 'hard cuts' : `${p.transition.type} transitions`}, fade in/out, loudness normalised). It cannot read your brief or see the footage, so ${measuredClips > 0 ? 'trim points favour technically strong moments (well exposed, sharp, steady, not crossing a scene change) and it does not know what is in them' : 'trim points are chosen by clip length only'}.`,
     source: 'rules',
     notes: [...notes, ...sanitized.notes.filter((n) => !notes.includes(n))],
   };

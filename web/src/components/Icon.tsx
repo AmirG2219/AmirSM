@@ -3,25 +3,10 @@ import type { ReactNode } from 'react';
 const P = (d: string) => <path d={d} />;
 
 const ICONS = {
-  home: <>{P('M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z')}</>,
   studio: (
     <>
       <rect x="3" y="4" width="18" height="16" rx="3" />
       <path d="m10 9 5.5 3-5.5 3z" />
-    </>
-  ),
-  library: (
-    <>
-      <rect x="3" y="3" width="7.5" height="7.5" rx="1.5" />
-      <rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5" />
-      <rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5" />
-      <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5" />
-    </>
-  ),
-  research: (
-    <>
-      <circle cx="12" cy="12" r="9" />
-      {P('m15.8 8.2-1.9 5.7-5.7 1.9 1.9-5.7z')}
     </>
   ),
   mail: (
@@ -41,10 +26,22 @@ const ICONS = {
   x: P('M18 6 6 18M6 6l12 12'),
   check: P('M20 6 9 17l-5-5'),
   'arrow-left': P('M19 12H5M12 19l-7-7 7-7'),
+  sidebar: (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="3" />
+      {P('M9 4v16')}
+    </>
+  ),
+  paperclip: P('m21 11.5-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l8.6-8.6a3.7 3.7 0 0 1 5.2 5.2l-8.7 8.6a1.8 1.8 0 0 1-2.6-2.6l7.9-7.9'),
+  'chevron-down': P('m6 9 6 6 6-6'),
+  'chevron-up': P('m18 15-6-6-6 6'),
+  reply: P('M9 14 4 9l5-5M4 9h10a6 6 0 0 1 6 6v3'),
+  link: P('M10 13a5 5 0 0 0 7.1 0l3-3a5 5 0 0 0-7.1-7.1l-1.7 1.7M14 11a5 5 0 0 0-7.1 0l-3 3a5 5 0 0 0 7.1 7.1l1.7-1.7'),
+  more: P('M5 12h.01M12 12h.01M19 12h.01'),
+  'arrow-right': P('M5 12h14M12 5l7 7-7 7'),
   'arrow-up': P('M12 19V5M5 12l7-7 7 7'),
   'arrow-down': P('M12 5v14M19 12l-7 7-7-7'),
   'chevron-right': P('m9 18 6-6-6-6'),
-  'chevron-down': P('m6 9 6 6 6-6'),
   search: (
     <>
       <circle cx="11" cy="11" r="7.5" />
@@ -83,12 +80,6 @@ const ICONS = {
       {P('M12 16v-4M12 8h.01')}
     </>
   ),
-  clock: (
-    <>
-      <circle cx="12" cy="12" r="9.5" />
-      {P('M12 6.5V12l3.5 2')}
-    </>
-  ),
   archive: (
     <>
       <rect x="2.5" y="3.5" width="19" height="5" rx="1.2" />
@@ -109,7 +100,6 @@ const ICONS = {
     </>
   ),
   play: P('M7 4.5v15l12-7.5z'),
-  stop: <rect x="6" y="6" width="12" height="12" rx="2" />,
   'circle-check': (
     <>
       <circle cx="12" cy="12" r="9.5" />
@@ -128,30 +118,7 @@ const ICONS = {
       {P('M8.5 12h7')}
     </>
   ),
-  lock: (
-    <>
-      <rect x="4" y="10.5" width="16" height="10" rx="2.5" />
-      {P('M8 10.5V7.5a4 4 0 0 1 8 0v3')}
-    </>
-  ),
   list: P('M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01'),
-  pulse: P('M3 12h4l3-8 4 16 3-8h4'),
-  external: P('M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6'),
-  trash: P('M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6'),
-  users: (
-    <>
-      <circle cx="9" cy="8" r="3.5" />
-      {P('M2.5 20a6.5 6.5 0 0 1 13 0M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.2A6.5 6.5 0 0 1 21.5 20')}
-    </>
-  ),
-  note: P('M5 3h11l4 4v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM15 3v5h5M8 13h8M8 17h5'),
-  globe: (
-    <>
-      <circle cx="12" cy="12" r="9.5" />
-      {P('M2.5 12h19M12 2.5c2.8 3 4 6 4 9.5s-1.2 6.5-4 9.5c-2.8-3-4-6-4-9.5s1.2-6.5 4-9.5z')}
-    </>
-  ),
-  history: P('M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2'),
   send: P('m22 2-11 11M22 2l-7 20-4-9-9-4z'),
   inbox: P('M22 12h-6l-2 3h-4l-2-3H2M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.7 4H7.3a2 2 0 0 0-1.8 1.1z'),
   database: (

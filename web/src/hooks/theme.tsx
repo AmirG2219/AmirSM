@@ -4,12 +4,9 @@ import { safeStorage } from './hooks';
 type Theme = 'light' | 'dark';
 const KEY = 'amirsm.theme';
 
-function systemTheme(): Theme {
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-}
 function initial(): Theme {
   const saved = safeStorage.get(KEY);
-  return saved === 'light' || saved === 'dark' ? saved : systemTheme();
+  return saved === 'dark' ? 'dark' : 'light';
 }
 
 interface ThemeCtx {
@@ -20,20 +17,10 @@ const Ctx = createContext<ThemeCtx | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>(initial);
-  const [explicit, setExplicit] = useState(() => safeStorage.get(KEY) !== null);
 
   useEffect(() => {
-    if (explicit) document.documentElement.setAttribute('data-theme', theme);
-  }, [theme, explicit]);
-
-  // Follow the OS until the owner picks a theme by hand.
-  useEffect(() => {
-    if (explicit) return;
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const on = () => setTheme(mq.matches ? 'dark' : 'light');
-    mq.addEventListener('change', on);
-    return () => mq.removeEventListener('change', on);
-  }, [explicit]);
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
 
   const toggle = useCallback(() => {
     setTheme((t) => {
@@ -41,7 +28,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       safeStorage.set(KEY, next);
       return next;
     });
-    setExplicit(true);
   }, []);
 
   const value = useMemo(() => ({ theme, toggle }), [theme, toggle]);

@@ -14,7 +14,15 @@ export interface AppConfig {
     dailyCallLimit: number;
     dailyTokenLimit: number;
   };
-  email: { sampleMailbox: boolean };
+  email: {
+    sampleMailbox: boolean;
+    /** where the AES key for stored mailbox credentials lives (default DATA_DIR/secret.key) */
+    keyFile: string;
+    /** max connection tests + connect attempts per minute (the endpoint must not work as a port scanner) */
+    connectTestsPerMinute: number;
+    /** background refresh when the mail list is opened and the last sync is older than this; 0 = off */
+    autoSyncSeconds: number;
+  };
   paths: { db: string; uploads: string; renders: string; exports: string; thumbs: string; work: string };
 }
 
@@ -54,7 +62,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, opts: { readDot
       dailyCallLimit: num(e.AI_DAILY_CALL_LIMIT, 60),
       dailyTokenLimit: num(e.AI_DAILY_TOKEN_LIMIT, 400_000),
     },
-    email: { sampleMailbox: e.EMAIL_SAMPLE_MAILBOX !== 'false' },
+    email: {
+      sampleMailbox: e.EMAIL_SAMPLE_MAILBOX !== 'false',
+      keyFile: e.EMAIL_KEY_FILE ? path.resolve(process.cwd(), e.EMAIL_KEY_FILE) : path.join(dataDir, 'secret.key'),
+      connectTestsPerMinute: num(e.EMAIL_CONNECT_TESTS_PER_MINUTE, 6),
+      autoSyncSeconds: num(e.EMAIL_AUTO_SYNC_SECONDS, 120),
+    },
     paths: {
       db: path.join(dataDir, 'amir-sm.db'),
       uploads: path.join(dataDir, 'uploads'),

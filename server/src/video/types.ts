@@ -1,6 +1,7 @@
 /** Contract between the orchestrator (lead) and the video engine (video agent). */
 import type { EditPlan } from '../../../shared/editPlan.js';
 import type { MediaInfo, QualityReport } from '../../../shared/domain.js';
+import type { SampledFrame, TechnicalProfile } from '../../../shared/analysis.js';
 
 export interface PlanAsset {
   id: string;
@@ -41,6 +42,10 @@ export interface VideoEngine {
   validatePlan(plan: EditPlan, assets: Map<string, PlanAsset>): { ok: boolean; errors: string[]; warnings: string[] };
   /** Executes a validated plan. Rejects with RenderError on failure (message must be human-readable; stderr tail attached). */
   render(req: RenderRequest): Promise<RenderResult>;
+  /** Local signal measurements of a clip (exposure, focus proxy, steadiness, scene cuts, audio level). No AI. */
+  technicalProfile(filePath: string, info: MediaInfo, opts?: { signal?: AbortSignal }): Promise<TechnicalProfile>;
+  /** Evenly spread JPEG stills of a clip (long edge <= 768 px) for the vision model. */
+  sampleFrames(filePath: string, info: MediaInfo, opts?: { count?: number; longEdge?: number; signal?: AbortSignal }): Promise<SampledFrame[]>;
   /** Deterministic export checks on a finished file: playable, h264/aac mp4, dimensions, duration vs plan, audio present when expected. */
   verifyOutput(outPath: string, plan: EditPlan): Promise<QualityReport>;
 }
