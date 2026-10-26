@@ -6,7 +6,6 @@ export interface AiStatus {
   configured: boolean; // ANTHROPIC_API_KEY present
   primaryModel: string;
   fastModel: string;
-  webSearchEnabled: boolean;
   limits: { dailyCalls: number; dailyTokens: number };
   usage: { callsToday: number; tokensToday: number };
   /** why unavailable, if so — shown verbatim in Settings */
@@ -84,7 +83,7 @@ export interface ReviewInput {
 export interface UsageRecord {
   id: string;
   ts: string;
-  role: Role | 'email' | 'research' | 'other';
+  role: Role | 'email' | 'vision' | 'other';
   model: string;
   inputTokens: number;
   outputTokens: number;
@@ -109,10 +108,6 @@ export interface AiService {
   draftEmail(input: { instruction: string; replyTo?: { subject: string; from: string; body: string }; tone?: string; senderName?: string }): Promise<{ subject: string; body: string }>;
   adjustTone(input: { text: string; tone: string }): Promise<{ text: string }>;
 
-  // --- Research (only operates on provided material, or opt-in web search) ---
-  analyzeCompetitorMaterial(input: { competitorName: string; materials: { label: string; text: string; url?: string }[]; focus?: string }): Promise<{ summary: string; patterns: string[]; hooks: string[]; ideas: string[] }>;
-  /** Market Researcher. Requires AI_WEB_SEARCH_ENABLED=true and a key; otherwise throws AiUnavailableError. Citations are returned from the tool. */
-  marketResearch(input: { topic: string; niche?: string }): Promise<{ summary: string; findings: { title: string; detail: string; sourceUrl?: string }[]; sources: { title: string; url: string }[] }>;
 }
 
 /** Persistence for usage accounting — implemented by the lead over SQLite; injected into createAiService. */

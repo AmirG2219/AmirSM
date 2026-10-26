@@ -6,7 +6,7 @@
  */
 import { z } from 'zod';
 
-export const STYLE_PRESETS = ['day-in-the-life', 'calm-cinematic', 'motivation', 'storytelling', 'custom'] as const;
+export const STYLE_PRESETS = ['day-in-the-life', 'calm-cinematic', 'motivation', 'high-energy', 'storytelling', 'custom'] as const;
 export type StylePreset = (typeof STYLE_PRESETS)[number];
 
 export const OUTPUT_FORMATS = {

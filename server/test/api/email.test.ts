@@ -1,6 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { makeTestApp, type TestApp } from './helpers.js';
-import { ResendProvider } from '../../src/email/service.js';
 
 describe('email workspace (sample mailbox)', () => {
   let t: TestApp;
@@ -59,49 +58,5 @@ describe('email workspace (sample mailbox)', () => {
   it('validates recipients', async () => {
     const r = await t.api('POST', '/api/email/drafts', { accountId, to: ['not-an-email'], subject: 's', body: 'b' });
     expect(r.status).toBe(400);
-  });
-});
-
-describe('Resend adapter (mocked HTTP — not verified against the live API)', () => {
-  it('posts the approved message and surfaces API errors', async () => {
-    const calls: any[] = [];
-    const ok = new ResendProvider('re_test', 'Me <me@example.com>', (async (url: string, init: any) => {
-      calls.push({ url, init });
-      return new Response(JSON.stringify({ id: 'abc' }), { status: 200 });
-    }) as any);
-    const r = await ok.send({ from: 'x', to: ['a@example.com'], cc: [], subject: 'S', body: 'B' });
-    expect(r).toMatchObject({ delivered: true, externalId: 'abc' });
-    expect(calls[0].url).toBe('https://api.resend.com/emails');
-    expect(calls[0].init.headers.authorization).toBe('Bearer re_test');
-    expect(JSON.parse(calls[0].init.body).to).toEqual(['a@example.com']);
-
-    const bad = new ResendProvider('re_test', 'me@example.com', (async () => new Response(JSON.stringify({ message: 'domain not verified' }), { status: 403 })) as any);
-    await expect(bad.send({ from: 'x', to: ['a@example.com'], cc: [], subject: 'S', body: 'B' })).rejects.toThrow(/domain not verified/);
-  });
-});
-
-describe('research workspace', () => {
-  let t: TestApp;
-  beforeAll(async () => {
-    t = await makeTestApp();
-  });
-  afterAll(() => t.close());
-
-  it('reports unavailable capabilities truthfully without a key', async () => {
-    const c = (await t.api('GET', '/api/research/capabilities')).json;
-    expect(c.competitorAnalysis.available).toBe(false);
-    expect(c.marketResearch.available).toBe(false);
-    expect(c.marketResearch.reason).toMatch(/research source/i);
-  });
-
-  it('stores competitors and notes, searches, and refuses non-http links', async () => {
-    const c = (await t.api('POST', '/api/research/competitors', { name: 'Example Creator', handle: '@example', url: 'https://example.com/creator' })).json;
-    expect((await t.api('POST', '/api/research/competitors', { name: 'x', url: 'javascript:alert(1)' })).status).toBe(400);
-    await t.api('POST', '/api/research/notes', { kind: 'idea', title: 'Golden-hour walk', body: 'Try a slow tracking shot', competitorId: c.id, tags: ['cinematic'] });
-    const found = (await t.api('GET', '/api/research/notes?q=tracking')).json;
-    expect(found.length).toBe(1);
-    expect((await t.api('POST', `/api/research/competitors/${c.id}/analyze`, { materials: [{ label: 'post', text: 'caption text' }] })).json.error.code).toBe('ai_unavailable');
-    expect((await t.api('POST', '/api/research/market', { topic: 'calm vlog trends' })).status).toBe(409);
-    expect((await t.api('GET', '/api/dashboard')).json.recentResearch.length).toBe(1);
   });
 });

@@ -21,11 +21,6 @@ export const renderFilePath = (cfg: AppConfig, projectId: string, number: number
 export const exportDirPath = (cfg: AppConfig, projectId: string, number: number) =>
   path.join(cfg.paths.exports, assertId(projectId), `v${Math.trunc(number)}`);
 
-// ---------- events ----------
-export function logEvent(db: Db, kind: string, message: string, projectId?: string | null, versionId?: string | null) {
-  db.prepare('INSERT INTO events (ts, kind, project_id, version_id, message) VALUES (?,?,?,?,?)').run(now(), kind, projectId ?? null, versionId ?? null, message.slice(0, 500));
-}
-
 // ---------- projects ----------
 export function getProjectRow(db: Db, id: string): Row {
   const row = db.prepare('SELECT * FROM projects WHERE id = ?').get(id) as Row | undefined;

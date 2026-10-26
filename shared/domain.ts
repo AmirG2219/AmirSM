@@ -60,7 +60,7 @@ export const JOB_STATUSES = ['queued', 'running', 'succeeded', 'failed', 'cancel
 export type JobStatus = (typeof JOB_STATUSES)[number];
 
 /** Which creative roles ran and how (shown truthfully in the UI). */
-export const ROLES = ['creative_director', 'video_editor', 'copywriter', 'market_researcher', 'competitor_analyst', 'quality_reviewer'] as const;
+export const ROLES = ['creative_director', 'video_editor', 'copywriter', 'quality_reviewer'] as const;
 export type Role = (typeof ROLES)[number];
 
 export const ALLOWED_VIDEO_EXT = ['.mp4', '.mov', '.m4v', '.webm', '.mkv'] as const;

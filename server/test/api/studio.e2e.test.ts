@@ -131,19 +131,6 @@ describe('Social Studio end-to-end (no AI key)', () => {
     const stored = fs.readdirSync(path.join(t.config.paths.uploads, projectId));
     expect(stored.length).toBe(assets.length);
   });
-
-  it('shows the approved export and drafts in the library and dashboard (real data only)', async () => {
-    const lib = await t.api('GET', '/api/library?kind=export');
-    expect(lib.json.length).toBe(1);
-    expect(lib.json[0].captionText).toContain('Slow mornings');
-    expect((await t.api('GET', '/api/library?q=landscape')).json.some((i: any) => i.kind === 'clip')).toBe(true);
-    const dash = await t.api('GET', '/api/dashboard');
-    expect(dash.json.recentlyCompleted.length).toBe(1);
-    expect(dash.json.inProgress).toEqual([]);
-    expect(dash.json.recentResearch).toEqual([]);
-    const ai = dash.json.system.find((s: any) => s.id === 'anthropic');
-    expect(ai.state).toBe('not_configured');
-  });
 });
 
 describe('job recovery and cancellation', () => {

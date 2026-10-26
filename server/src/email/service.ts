@@ -1,8 +1,6 @@
 /**
  * Email workspace service. Provider integration is modular:
  *  - "fixture"  — local sample mailbox (readable, never delivers anything)
- *  - "resend"   — SEND-ONLY adapter (Resend is a transactional API, it cannot read a Gmail/Outlook mailbox)
- * Real mailbox reading (Gmail/Outlook/IMAP) is NOT implemented; see docs/STATUS.md.
  * Nothing is ever sent without an explicit approve step whose content hash must match at send time.
  */
 import crypto from 'node:crypto';
@@ -35,27 +33,6 @@ class FixtureProvider implements EmailProvider {
   }
 }
 
-export class ResendProvider implements EmailProvider {
-  id = 'resend';
-  canRead = false;
-  canSend = true;
-  constructor(private apiKey: string, private from: string, private fetchImpl: typeof fetch = fetch) {}
-  statusDetail() {
-    return 'Resend is connected for sending only (it cannot read a mailbox). Not yet verified against the live API.';
-  }
-  async send(msg: OutgoingMessage): Promise<SendResult> {
-    const res = await this.fetchImpl('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { authorization: `Bearer ${this.apiKey}`, 'content-type': 'application/json' },
-      body: JSON.stringify({ from: this.from, to: msg.to, cc: msg.cc.length ? msg.cc : undefined, subject: msg.subject, text: msg.body }),
-      signal: AbortSignal.timeout(15_000),
-    });
-    const json = (await res.json().catch(() => ({}))) as { id?: string; message?: string };
-    if (!res.ok) throw new Error(`Resend rejected the message (${res.status}): ${json.message ?? res.statusText}`);
-    return { delivered: true, note: 'Accepted by Resend for delivery.', externalId: json.id };
-  }
-}
-
 const EMAIL_RE = /^[^\s@<>()]+@[^\s@<>()]+\.[^\s@<>()]+$/;
 export function parseAddresses(list: string[], field: string): string[] {
   const out = list.map((s) => s.trim()).filter(Boolean);
@@ -71,8 +48,7 @@ export class EmailService {
   private providers = new Map<string, EmailProvider>();
 
   constructor(private cfg: AppConfig, private db: Db, fetchImpl: typeof fetch = fetch) {
-    if (cfg.email.provider === 'fixture') this.providers.set('fixture', new FixtureProvider());
-    if (cfg.email.resendApiKey && cfg.email.resendFrom) this.providers.set('resend', new ResendProvider(cfg.email.resendApiKey, cfg.email.resendFrom, fetchImpl));
+    if (cfg.email.sampleMailbox) this.providers.set('fixture', new FixtureProvider());
     this.syncAccounts();
   }
 
@@ -95,9 +71,13 @@ export class EmailService {
         }
       });
     }
-    if (this.providers.has('resend') && !have.has('resend')) {
-      this.db.prepare('INSERT INTO email_accounts (id, provider, label, address, is_fixture, created_at) VALUES (?,?,?,?,0,?)').run(newId('acc'), 'resend', 'Resend (send-only)', this.cfg.email.resendFrom!, now());
-    }
+  }
+
+  integrationStatus(): import('../../../shared/api.js').IntegrationStatus {
+    const accounts = this.accounts();
+    return accounts.some((a) => !a.isFixture)
+      ? { id: 'email', label: 'Mailbox', state: 'connected', detail: 'Connected.' }
+      : { id: 'email', label: 'Mailbox', state: 'fixture', detail: 'Showing a sample mailbox with fictional messages. No real mailbox is connected yet.', action: 'Connect your mailbox from the Email page.' };
   }
 
   provider(id: string) {

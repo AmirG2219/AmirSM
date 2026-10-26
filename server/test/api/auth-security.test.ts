@@ -48,31 +48,4 @@ describe('auth & request security', () => {
     await t.api('POST', '/api/auth/logout');
     expect((await t.api('GET', '/api/projects')).status).toBe(401);
   });
-
-  it('n8n machine endpoints reject missing/incorrect tokens (and everything when no token is configured)', async () => {
-    expect((await t.api('GET', '/api/integrations/n8n/status')).status).toBe(401);
-    const res = await t.app.inject({ method: 'GET', url: '/api/integrations/n8n/status', headers: { host: 'localhost', authorization: 'Bearer nope' } });
-    expect(res.statusCode).toBe(401);
-  });
-});
-
-describe('n8n inbound with a configured token', () => {
-  let t: TestApp;
-  beforeAll(async () => {
-    t = await makeTestApp({ env: { N8N_INBOUND_TOKEN: 'x'.repeat(40) } });
-  });
-  afterAll(() => t.close());
-
-  it('accepts the bearer token and ingests research notes without a cookie', async () => {
-    const headers = { host: 'localhost', authorization: `Bearer ${'x'.repeat(40)}`, 'content-type': 'application/json' };
-    const ok = await t.app.inject({ method: 'GET', url: '/api/integrations/n8n/status', headers });
-    expect(ok.statusCode).toBe(200);
-    const ing = await t.app.inject({ method: 'POST', url: '/api/integrations/n8n/research/ingest', headers, payload: JSON.stringify({ source: 'rss', notes: [{ kind: 'inspiration', title: 'A post', body: 'text', sourceUrl: 'https://example.com/a' }] }) });
-    expect(ing.statusCode).toBe(200);
-    const notes = await t.api('GET', '/api/research/notes');
-    expect(notes.json[0].sourceLabel).toBe('n8n: rss');
-    // javascript: links are refused
-    const bad = await t.app.inject({ method: 'POST', url: '/api/integrations/n8n/research/ingest', headers, payload: JSON.stringify({ notes: [{ kind: 'idea', title: 'x', sourceUrl: 'javascript:alert(1)' }] }) });
-    expect(bad.statusCode).toBe(400);
-  });
 });

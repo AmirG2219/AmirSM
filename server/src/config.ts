@@ -13,10 +13,8 @@ export interface AppConfig {
     fastModel: string;
     dailyCallLimit: number;
     dailyTokenLimit: number;
-    webSearchEnabled: boolean;
   };
-  email: { provider: string; resendApiKey: string | null; resendFrom: string | null };
-  n8n: { baseUrl: string | null; webhookSecret: string | null; inboundToken: string | null };
+  email: { sampleMailbox: boolean };
   paths: { db: string; uploads: string; renders: string; exports: string; thumbs: string; work: string };
 }
 
@@ -55,10 +53,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, opts: { readDot
       fastModel: e.ANTHROPIC_MODEL_FAST || 'claude-haiku-5-5',
       dailyCallLimit: num(e.AI_DAILY_CALL_LIMIT, 60),
       dailyTokenLimit: num(e.AI_DAILY_TOKEN_LIMIT, 400_000),
-      webSearchEnabled: e.AI_WEB_SEARCH_ENABLED === 'true',
     },
-    email: { provider: e.EMAIL_PROVIDER || 'fixture', resendApiKey: str(e.RESEND_API_KEY), resendFrom: str(e.RESEND_FROM) },
-    n8n: { baseUrl: str(e.N8N_BASE_URL), webhookSecret: str(e.N8N_WEBHOOK_SECRET), inboundToken: str(e.N8N_INBOUND_TOKEN) },
+    email: { sampleMailbox: e.EMAIL_SAMPLE_MAILBOX !== 'false' },
     paths: {
       db: path.join(dataDir, 'amir-sm.db'),
       uploads: path.join(dataDir, 'uploads'),

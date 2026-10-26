@@ -13,7 +13,7 @@ import { AiLimitError, AiUnavailableError, type AssetBrief } from './ai/types.js
 import type { PlanAsset } from './video/types.js';
 import { RenderCancelled } from './video/types.js';
 import { FatalJobError, type JobContext, type JobHandler } from './jobs/runner.js';
-import { assetFilePath, getProjectRow, getVersionRow, listAssetRows, logEvent, renderFilePath } from './repo.js';
+import { assetFilePath, getProjectRow, getVersionRow, listAssetRows, renderFilePath } from './repo.js';
 
 const STAGES = {
   planning: [0, 0.1],
@@ -163,9 +163,7 @@ export function createProduceHandler(ctx: AppContext): JobHandler {
         throw new FatalJobError(`Export checks failed: ${failed.join('; ')}`);
       }
       setVersion(ctx, vid, { status: 'ready', quality_json: JSON.stringify(quality), finished_at: now(), error: null });
-      logEvent(db, 'version.ready', `Draft v${version.number} of “${project.title}” is ready for review.`, pid, vid);
       recalcProjectStatus(db, pid);
-      ctx.n8n.emit('version.ready', { projectId: pid, versionId: vid, number: version.number, title: project.title }, pid);
     },
 
     onFinalFailure(job: Row, error: Error, cancelled: boolean) {
@@ -175,9 +173,7 @@ export function createProduceHandler(ctx: AppContext): JobHandler {
         setVersion(ctx, v.id, { status: cancelled ? 'cancelled' : 'failed', error: cancelled ? null : error.message.slice(0, 1000), finished_at: now() });
       }
       const p = ctx.db.prepare('SELECT title FROM projects WHERE id = ?').get(v.project_id) as Row | undefined;
-      logEvent(ctx.db, cancelled ? 'version.cancelled' : 'version.failed', `Draft v${v.number} of “${p?.title ?? ''}” ${cancelled ? 'was cancelled' : 'failed'}.`, v.project_id, v.id);
       recalcProjectStatus(ctx.db, v.project_id);
-      if (!cancelled) ctx.n8n.emit('version.failed', { projectId: v.project_id, versionId: v.id, number: v.number, title: p?.title, error: error.message }, v.project_id);
     },
   };
 }

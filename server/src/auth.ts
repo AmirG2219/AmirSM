@@ -132,8 +132,6 @@ export function registerAuthRoutes(app: FastifyInstance, auth: AuthService) {
 
 /** Paths under /api that do not require the owner session. */
 const PUBLIC = [/^\/api\/auth\/(state|setup|login|logout)$/, /^\/api\/health$/];
-/** n8n machine endpoints authenticate with a bearer token inside their own plugin. */
-const MACHINE = /^\/api\/integrations\/n8n\//;
 
 export function installAuthGuard(app: FastifyInstance, auth: AuthService, opts: { allowedHosts: string[] }) {
   app.addHook('onRequest', async (req: FastifyRequest) => {
@@ -146,7 +144,7 @@ export function installAuthGuard(app: FastifyInstance, auth: AuthService, opts: 
     if (!url.startsWith('/api/')) return;
 
     // CSRF: state-changing requests must be same-origin.
-    if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method) && !MACHINE.test(url)) {
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
       const origin = req.headers.origin;
       if (origin) {
         let oh = '';
@@ -157,7 +155,7 @@ export function installAuthGuard(app: FastifyInstance, auth: AuthService, opts: 
       }
     }
 
-    if (PUBLIC.some((r) => r.test(url)) || MACHINE.test(url)) return;
+    if (PUBLIC.some((r) => r.test(url))) return;
     if (!auth.validate(req.cookies[SESSION_COOKIE])) throw new HttpError(401, 'unauthenticated', 'Sign in required.');
   });
 }

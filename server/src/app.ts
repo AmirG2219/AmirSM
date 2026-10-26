@@ -11,8 +11,7 @@ import { AuthService, installAuthGuard, registerAuthRoutes } from './auth.js';
 import { HttpError } from './http.js';
 import { registerProjectRoutes } from './routes/projects.js';
 import { registerEmailRoutes } from './routes/email.js';
-import { registerResearchRoutes } from './routes/research.js';
-import { registerOverviewRoutes } from './routes/overview.js';
+import { registerSettingsRoutes } from './routes/settings.js';
 
 export interface BuildOptions {
   logger?: boolean;
@@ -49,8 +48,7 @@ export async function buildApp(ctx: AppContext, opts: BuildOptions = {}): Promis
   registerAuthRoutes(app, auth);
   registerProjectRoutes(app, ctx);
   registerEmailRoutes(app, ctx);
-  registerResearchRoutes(app, ctx);
-  registerOverviewRoutes(app, ctx);
+  registerSettingsRoutes(app, ctx);
 
   // Built web app (production). In dev, Vite serves the UI and proxies /api here.
   const webDist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../web/dist');

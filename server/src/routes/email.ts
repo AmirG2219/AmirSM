@@ -3,7 +3,6 @@ import { z } from 'zod';
 import type { AppContext } from '../context.js';
 import { AiLimitError, AiUnavailableError } from '../ai/types.js';
 import { HttpError } from '../http.js';
-import { logEvent } from '../repo.js';
 
 const addrs = z.array(z.string().max(320)).max(10);
 const draftCreate = z.object({
@@ -86,13 +85,11 @@ export function registerEmailRoutes(app: FastifyInstance, ctx: AppContext) {
   /** Human review gate 1: the owner explicitly approves exactly this content. */
   app.post('/api/email/drafts/:id/approve', async (req) => {
     const d = email.approveDraft((req.params as { id: string }).id);
-    logEvent(db, 'email.draft_approved', `Approved email draft “${d.subject}” for sending.`);
     return d;
   });
   /** Gate 2: sending requires an approved draft whose content hash is unchanged. */
   app.post('/api/email/drafts/:id/send', async (req) => {
     const d = await email.sendDraft((req.params as { id: string }).id);
-    logEvent(db, 'email.sent', `${d.sendResult?.delivered ? 'Sent' : 'Recorded (not delivered)'} email “${d.subject}”.`);
     return d;
   });
 }

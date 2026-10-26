@@ -12,7 +12,7 @@ import { OUTPUT_FORMATS, STYLE_PRESETS, type EditPlan } from '../../../shared/ed
 import type { ProjectDetail, UploadResult } from '../../../shared/api.js';
 import { HttpError, badRequest, conflict, mimeFor, notFound, sendFile, slugify } from '../http.js';
 import {
-  assetFilePath, exportDirPath, getAssetRow, getProjectRow, getVersionRow, listAssetRows, logEvent, renderFilePath,
+  assetFilePath, exportDirPath, getAssetRow, getProjectRow, getVersionRow, listAssetRows, renderFilePath,
   thumbFilePath, toAssetDTO, toProjectDTO, toProjectSummary, toVersionDTO,
 } from '../repo.js';
 import { produceCaption, recalcProjectStatus } from '../orchestrator.js';
@@ -59,7 +59,6 @@ export function registerProjectRoutes(app: FastifyInstance, ctx: AppContext) {
     db.prepare('INSERT INTO projects (id, title, brief, style_preset, format, created_at, updated_at) VALUES (?,?,?,?,?,?,?)').run(
       id, b.title, b.brief ?? '', b.stylePreset ?? 'calm-cinematic', b.format ?? '9:16', t, t,
     );
-    logEvent(db, 'project.created', `Created project “${b.title}”.`, id);
     reply.code(201);
     return detail(id);
   });
@@ -90,7 +89,6 @@ export function registerProjectRoutes(app: FastifyInstance, ctx: AppContext) {
       throw conflict('busy', 'A draft is still being produced. Cancel it first.');
     }
     db.prepare("UPDATE projects SET status = 'archived', updated_at = ? WHERE id = ?").run(now(), id);
-    logEvent(db, 'project.archived', `Archived project “${p.title}”. Files are kept.`, id);
     return detail(id);
   });
   app.post('/api/projects/:id/unarchive', async (req) => {
@@ -171,7 +169,6 @@ export function registerProjectRoutes(app: FastifyInstance, ctx: AppContext) {
           'INSERT INTO assets (id, project_id, kind, original_name, stored_name, mime, size_bytes, sha256, info_json, thumb_name, sort_order, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
         ).run(id, projectId, kind, name.slice(0, 200), `${id}${ext}`, mimeFor(final), size, sha, JSON.stringify(info), thumbName, order, now());
         db.prepare('UPDATE projects SET updated_at = ? WHERE id = ?').run(now(), projectId);
-        logEvent(db, 'asset.uploaded', `Uploaded “${name}” to “${project.title}”.`, projectId);
         results.push({ name, ok: true, asset: toAssetDTO(getAssetRow(db, id)) });
       } catch (e) {
         fs.rmSync(tmp, { force: true });
@@ -239,7 +236,6 @@ export function registerProjectRoutes(app: FastifyInstance, ctx: AppContext) {
     });
     jobs.enqueue({ type: 'produce_version', projectId, versionId: id });
     recalcProjectStatus(db, projectId);
-    logEvent(db, 'version.queued', `Queued ${isRevision ? 'revision' : 'draft'} v${number} of “${project.title}”.`, projectId, id);
     reply.code(201);
     return toVersionDTO(db, getVersionRow(db, id));
   });
@@ -265,7 +261,6 @@ export function registerProjectRoutes(app: FastifyInstance, ctx: AppContext) {
     ).run(v.id);
     jobs.enqueue({ type: 'produce_version', projectId: v.project_id, versionId: v.id });
     recalcProjectStatus(db, v.project_id);
-    logEvent(db, 'version.retry', `Retrying draft v${v.number}${replan ? ' with a fresh plan' : ''}.`, v.project_id, v.id);
     return toVersionDTO(db, getVersionRow(db, v.id));
   });
 
@@ -332,8 +327,6 @@ export function registerProjectRoutes(app: FastifyInstance, ctx: AppContext) {
       db.prepare('UPDATE projects SET approved_version_id = ?, updated_at = ? WHERE id = ?').run(v.id, approvedAt, v.project_id);
     });
     recalcProjectStatus(db, v.project_id);
-    logEvent(db, 'version.approved', `Approved v${v.number} of “${project.title}”. Exported copy saved.`, v.project_id, v.id);
-    ctx.n8n.emit('version.approved', { projectId: v.project_id, versionId: v.id, number: v.number, title: project.title }, v.project_id);
     return toVersionDTO(db, getVersionRow(db, v.id));
   });
 

@@ -103,53 +103,6 @@ export interface UploadResult {
   results: { name: string; ok: boolean; asset?: AssetDTO; error?: string }[];
 }
 
-// ---------- Dashboard ----------
-export interface SystemStatusItem {
-  id: string;
-  label: string;
-  state: 'ok' | 'degraded' | 'not_configured' | 'error' | 'fixture';
-  detail: string;
-}
-export interface DashboardDTO {
-  generatedAt: string;
-  inProgress: ProjectSummary[];
-  needsReview: ProjectSummary[];
-  recentlyCompleted: ProjectSummary[];
-  pendingEmail: { drafts: { id: string; subject: string; status: string; updatedAt: string }[]; needsReplyThreads: { id: string; subject: string; lastMessageAt: string }[]; provider: string; isFixture: boolean };
-  recentResearch: { id: string; kind: string; title: string; createdAt: string }[];
-  recentFailures: { versionId: string; projectId: string; projectTitle: string; number: number; error: string | null; at: string | null }[];
-  system: SystemStatusItem[];
-  queue: { queued: number; running: number };
-  activity: { id: number; ts: string; kind: string; message: string; projectId: string | null }[];
-}
-
-// ---------- Library ----------
-export interface LibraryItem {
-  kind: 'clip' | 'draft' | 'export';
-  id: string; // asset id or version id
-  projectId: string;
-  projectTitle: string;
-  title: string; // filename or "v3 draft"
-  status: string;
-  thumbUrl: string | null;
-  mediaUrl: string | null;
-  downloadUrl: string | null;
-  captionText: string | null;
-  instruction: string | null;
-  sizeBytes: number | null;
-  durationMs: number | null;
-  createdAt: string;
-}
-
-// ---------- Research ----------
-export interface CompetitorDTO { id: string; name: string; handle: string | null; url: string | null; notes: string; createdAt: string }
-export interface ResearchNoteDTO { id: string; kind: 'observation' | 'idea' | 'inspiration'; title: string; body: string; sourceUrl: string | null; sourceLabel: string | null; competitorId: string | null; tags: string[]; createdAt: string }
-export interface ResearchRunDTO { id: string; kind: 'competitor_analysis' | 'market_research'; topic: string; competitorId: string | null; source: string; status: 'succeeded' | 'failed'; error: string | null; result: unknown; createdAt: string }
-export interface ResearchCapabilities {
-  competitorAnalysis: { available: boolean; reason?: string };
-  marketResearch: { available: boolean; reason?: string };
-}
-
 // ---------- Email ----------
 export interface EmailAccountDTO { id: string; provider: string; label: string; address: string; isFixture: boolean; canRead: boolean; canSend: boolean; statusDetail: string }
 export interface EmailMessageDTO { id: string; direction: 'in' | 'out'; fromName: string | null; fromAddr: string; to: string[]; cc: string[]; date: string; body: string }
@@ -157,11 +110,11 @@ export interface EmailThreadSummary { id: string; accountId: string; subject: st
 export interface EmailThreadDetail extends EmailThreadSummary { messages: EmailMessageDTO[]; summary: { summary: string; actionItems: string[]; needsReply: boolean; at: string } | null }
 export interface EmailDraftDTO { id: string; accountId: string; threadId: string | null; to: string[]; cc: string[]; subject: string; body: string; aiAssisted: boolean; status: 'draft' | 'approved' | 'sent' | 'failed'; approvedAt: string | null; sentAt: string | null; sendResult: { delivered: boolean; note: string } | null; createdAt: string; updatedAt: string }
 
-// ---------- Settings / integrations ----------
+// ---------- Settings ----------
 export interface IntegrationStatus {
-  id: 'anthropic' | 'ffmpeg' | 'email' | 'resend' | 'n8n' | 'web_search';
+  id: 'anthropic' | 'ffmpeg' | 'email';
   label: string;
-  state: 'connected' | 'not_configured' | 'awaiting_credentials' | 'fixture' | 'error';
+  state: 'connected' | 'not_configured' | 'fixture' | 'error';
   detail: string;
   /** what the owner needs to do, if anything */
   action?: string;
