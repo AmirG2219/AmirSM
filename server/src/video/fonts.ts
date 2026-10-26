@@ -218,11 +218,15 @@ export interface FontPick {
 /** Lazily loads the explicit font (option/env) first, then system candidates. */
 export class FontLibrary {
   private faces: Promise<FontFace[]> | null = null;
-  constructor(private readonly explicit?: string | null, private readonly platform: NodeJS.Platform = process.platform) {}
+  constructor(
+    private readonly explicit?: string | null,
+    private readonly platform: NodeJS.Platform = process.platform,
+    private readonly useSystemFonts = true,
+  ) {}
 
   private load(): Promise<FontFace[]> {
     this.faces ??= (async () => {
-      const files = [...(this.explicit ? [this.explicit] : []), ...systemFontCandidates(this.platform)];
+      const files = [...(this.explicit ? [this.explicit] : []), ...(this.useSystemFonts ? systemFontCandidates(this.platform) : [])];
       const out: FontFace[] = [];
       const seen = new Set<string>();
       for (const f of files) {

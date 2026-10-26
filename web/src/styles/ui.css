@@ -124,6 +124,8 @@
 .empty .empty-mark { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); margin-bottom: 4px; }
 .empty.compact { padding: var(--s-4); border-radius: var(--r-m); }
 .empty.compact p { font-size: 13.5px; }
+.card-body > .empty.compact { border: 0; padding: 0; border-radius: 0; }
+.card-body > .empty.compact h3 { font-size: 16px; }
 
 /* ---------- Callouts ---------- */
 .callout { display: flex; gap: 12px; padding: 12px 14px; border-radius: var(--r-m); border: 1px solid var(--line); background: var(--surface-2); font-size: 14px; }

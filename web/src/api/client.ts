@@ -4,6 +4,7 @@ import type {
   DashboardDTO,
   ProjectDetail,
   ProjectSummary,
+  SettingsStatus,
   UploadResult,
   VersionDTO,
 } from '@shared/api';
@@ -127,6 +128,7 @@ export const api = {
     logout: () => post<{ ok: true }>('/api/auth/logout'),
   },
   dashboard: (signal?: AbortSignal) => get<DashboardDTO>('/api/dashboard', signal),
+  settingsStatus: (signal?: AbortSignal) => get<SettingsStatus>('/api/settings/status', signal),
   projects: {
     list: (p: ProjectListParams = {}, signal?: AbortSignal) => {
       const qs = new URLSearchParams();

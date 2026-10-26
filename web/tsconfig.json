@@ -11,8 +11,7 @@
     "noEmit": true,
     "isolatedModules": true,
     "allowImportingTsExtensions": true,
-    "paths": { "@shared/*": ["../shared/*"] },
-    "baseUrl": "."
+    "paths": { "@shared/*": ["../shared/*"] }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "../shared/**/*.ts"]
 }

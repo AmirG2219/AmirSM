@@ -30,6 +30,8 @@ export interface VideoEngineOptions {
   preset?: string;
   /** x264 CRF (default 20) */
   crf?: number;
+  /** false = only use fontFile / env font, never scan system font folders (default true) */
+  systemFonts?: boolean;
   /** hard cap on one ffmpeg render (default 30 min) */
   renderTimeoutMs?: number;
 }
@@ -37,7 +39,7 @@ export interface VideoEngineOptions {
 export function createVideoEngine(opts: VideoEngineOptions): VideoEngine & { fontReport(): Promise<{ available: boolean; primary: string | null }> } {
   const { ffmpegPath, ffprobePath } = opts;
   const explicitFont = opts.fontFile || process.env.AMIR_FONT_FILE || process.env.VIDEO_FONT_FILE || null;
-  const fonts = new FontLibrary(explicitFont);
+  const fonts = new FontLibrary(explicitFont, process.platform, opts.systemFonts ?? true);
   const deps = { ffmpegPath, ffprobePath, fonts, preset: opts.preset ?? 'veryfast', crf: opts.crf ?? 20, timeoutMs: opts.renderTimeoutMs ?? 30 * 60_000 };
 
   // validatePlan is synchronous by contract; font availability is resolved in the background at creation
