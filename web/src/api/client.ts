@@ -1,6 +1,8 @@
 import type {
   AssetDTO,
   AuthState,
+  ChatMessageDTO,
+  ChatResponse,
   EmailAccountDTO,
   EmailConnectInput,
   EmailConnectionTestResult,
@@ -89,10 +91,11 @@ export function uploadFile(
   projectId: string,
   file: File,
   onProgress: (fraction: number) => void,
+  role: 'footage' | 'reference' = 'footage',
 ): { promise: Promise<UploadItemResult>; abort: () => void } {
   const xhr = new XMLHttpRequest();
   const promise = new Promise<UploadItemResult>((resolve, reject) => {
-    xhr.open('POST', `/api/projects/${encodeURIComponent(projectId)}/assets`);
+    xhr.open('POST', `/api/projects/${encodeURIComponent(projectId)}/assets${role === 'reference' ? '?role=reference' : ''}`);
     xhr.withCredentials = true;
     xhr.responseType = 'json';
     xhr.setRequestHeader('Accept', 'application/json');
@@ -165,6 +168,10 @@ export const api = {
   },
   assets: {
     patch: (id: string, b: { excluded?: boolean; sortOrder?: number }) => patch<AssetDTO>(`/api/assets/${encodeURIComponent(id)}`, b),
+  },
+  chat: {
+    list: (projectId: string, signal?: AbortSignal) => get<ChatMessageDTO[]>(`/api/projects/${encodeURIComponent(projectId)}/chat`, signal),
+    send: (projectId: string, text: string, attachmentIds: string[]) => post<ChatResponse>(`/api/projects/${encodeURIComponent(projectId)}/chat`, { text, attachmentIds }),
   },
   versions: {
     create: (projectId: string, b: { instruction?: string; baseVersionId?: string }) => post<VersionDTO>(`/api/projects/${encodeURIComponent(projectId)}/versions`, b),

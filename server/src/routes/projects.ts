@@ -7,7 +7,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { AppContext } from '../context.js';
 import { newId, now, parseJson, tx, type Row } from '../db/index.js';
-import { ALLOWED_AUDIO_EXT, ALLOWED_VIDEO_EXT, CaptionSchema, captionToText, type Caption, type MediaInfo } from '../../../shared/domain.js';
+import { ALLOWED_VIDEO_EXT, CaptionSchema, captionToText, type Caption, type MediaInfo } from '../../../shared/domain.js';
 import { OUTPUT_FORMATS, STYLE_PRESETS, type EditPlan } from '../../../shared/editPlan.js';
 import type { ProjectDetail, UploadResult } from '../../../shared/api.js';
 import { HttpError, badRequest, conflict, mimeFor, notFound, sendFile, slugify } from '../http.js';
@@ -16,6 +16,7 @@ import {
   thumbFilePath, toAssetDTO, toProjectDTO, toProjectSummary, toVersionDTO,
 } from '../repo.js';
 import { produceCaption, recalcProjectStatus } from '../orchestrator.js';
+import { queueVersion } from '../versions.js';
 import { captionChecks, overallOf } from '../ai/review.js';
 import type { QualityReport } from '../../../shared/domain.js';
 
@@ -109,6 +110,7 @@ export function registerProjectRoutes(app: FastifyInstance, ctx: AppContext) {
     fs.mkdirSync(dir, { recursive: true });
     fs.mkdirSync(config.paths.thumbs, { recursive: true });
     const results: UploadResult['results'] = [];
+    const role = (req.query as { role?: string }).role === 'reference' ? 'reference' : 'footage';
 
     for await (const part of req.parts()) {
       if (part.type !== 'file') {
@@ -116,10 +118,10 @@ export function registerProjectRoutes(app: FastifyInstance, ctx: AppContext) {
       }
       const name = path.basename(part.filename || 'upload');
       const ext = path.extname(name).toLowerCase();
-      const kind = (ALLOWED_VIDEO_EXT as readonly string[]).includes(ext) ? 'video' : (ALLOWED_AUDIO_EXT as readonly string[]).includes(ext) ? 'audio' : null;
+      const kind = (ALLOWED_VIDEO_EXT as readonly string[]).includes(ext) ? 'video' : null;
       if (!kind) {
         part.file.resume();
-        results.push({ name, ok: false, error: `Unsupported file type "${ext || 'none'}". Allowed: ${[...ALLOWED_VIDEO_EXT, ...ALLOWED_AUDIO_EXT].join(', ')}` });
+        results.push({ name, ok: false, error: `Unsupported file type "${ext || 'none'}". Allowed: ${ALLOWED_VIDEO_EXT.join(', ')}` });
         continue;
       }
       const id = newId('ast');
@@ -142,7 +144,7 @@ export function registerProjectRoutes(app: FastifyInstance, ctx: AppContext) {
         if (part.file.truncated) throw new Error(`File exceeds the ${Math.round(config.maxUploadBytes / 1048576)} MB limit.`);
         if (size === 0) throw new Error('File is empty.');
         const sha = hash.digest('hex');
-        const dup = db.prepare('SELECT original_name FROM assets WHERE project_id = ? AND sha256 = ?').get(projectId, sha) as Row | undefined;
+        const dup = db.prepare('SELECT original_name FROM assets WHERE project_id = ? AND sha256 = ? AND role = ?').get(projectId, sha, role) as Row | undefined;
         if (dup) throw new Error(`Already uploaded as “${dup.original_name}”.`);
 
         let info: MediaInfo;
@@ -151,8 +153,7 @@ export function registerProjectRoutes(app: FastifyInstance, ctx: AppContext) {
         } catch (e) {
           throw new Error(`Not a readable media file (${(e as Error).message.split('\n')[0]}).`);
         }
-        if (kind === 'video' && (!info.hasVideo || info.durationMs <= 0)) throw new Error('No playable video stream found.');
-        if (kind === 'audio' && !info.hasAudio) throw new Error('No audio stream found.');
+        if (!info.hasVideo || info.durationMs <= 0) throw new Error('No playable video stream found.');
 
         fs.renameSync(tmp, final);
         let thumbName: string | null = null;
@@ -166,8 +167,8 @@ export function registerProjectRoutes(app: FastifyInstance, ctx: AppContext) {
         }
         const order = (db.prepare('SELECT COALESCE(MAX(sort_order), -1) + 1 AS n FROM assets WHERE project_id = ?').get(projectId) as Row).n;
         db.prepare(
-          'INSERT INTO assets (id, project_id, kind, original_name, stored_name, mime, size_bytes, sha256, info_json, thumb_name, sort_order, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
-        ).run(id, projectId, kind, name.slice(0, 200), `${id}${ext}`, mimeFor(final), size, sha, JSON.stringify(info), thumbName, order, now());
+          'INSERT INTO assets (id, project_id, kind, original_name, stored_name, mime, size_bytes, sha256, info_json, thumb_name, sort_order, created_at, role) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
+        ).run(id, projectId, kind, name.slice(0, 200), `${id}${ext}`, mimeFor(final), size, sha, JSON.stringify(info), thumbName, order, now(), role);
         db.prepare('UPDATE projects SET updated_at = ? WHERE id = ?').run(now(), projectId);
         results.push({ name, ok: true, asset: toAssetDTO(getAssetRow(db, id)) });
       } catch (e) {
@@ -201,43 +202,11 @@ export function registerProjectRoutes(app: FastifyInstance, ctx: AppContext) {
   // ---------- versions ----------
   app.post('/api/projects/:id/versions', async (req, reply) => {
     const projectId = (req.params as { id: string }).id;
-    const project = getProjectRow(db, projectId);
+    getProjectRow(db, projectId);
     const b = versionSchema.parse(req.body ?? {});
-    if (project.status === 'archived') throw conflict('archived', 'Unarchive the project first.');
-    const active = db.prepare(`SELECT 1 FROM versions WHERE project_id = ? AND status IN (${ACTIVE.map(() => '?').join(',')})`).get(projectId, ...ACTIVE);
-    if (active) throw conflict('busy', 'A draft is already being produced for this project.');
-    const assets = listAssetRows(db, projectId).filter((a) => !a.excluded && a.kind === 'video');
-    if (!assets.length) throw badRequest('Upload at least one video clip first.');
-
-    const existing = db.prepare('SELECT COUNT(*) AS n FROM versions WHERE project_id = ?').get(projectId) as Row;
-    const isRevision = existing.n > 0;
-    let parentId: string | null = null;
-    if (isRevision) {
-      if (!b.instruction || b.instruction.length < 3) throw badRequest('Describe what to change.');
-      if (!ctx.ai.status().configured) throw conflict('ai_unavailable', 'Revisions need the AI to interpret your request, and no Anthropic API key is configured. You can still edit the caption by hand.');
-      if (b.baseVersionId) {
-        const base = getVersionRow(db, b.baseVersionId);
-        if (base.project_id !== projectId) throw badRequest('Base version belongs to another project.');
-        parentId = base.id;
-      } else {
-        const last = db.prepare('SELECT id FROM versions WHERE project_id = ? AND plan_json IS NOT NULL ORDER BY number DESC LIMIT 1').get(projectId) as Row | undefined;
-        parentId = last?.id ?? null;
-      }
-    }
-    const instruction = isRevision ? b.instruction! : b.instruction || project.brief;
-    if (!isRevision && b.instruction && b.instruction !== project.brief) {
-      db.prepare('UPDATE projects SET brief = ? WHERE id = ?').run(b.instruction, projectId);
-    }
-    const id = newId('ver');
-    const number = tx(db, () => {
-      const n = (db.prepare('SELECT COALESCE(MAX(number), 0) + 1 AS n FROM versions WHERE project_id = ?').get(projectId) as Row).n as number;
-      db.prepare('INSERT INTO versions (id, project_id, number, parent_version_id, instruction, is_revision, status, created_at) VALUES (?,?,?,?,?,?,?,?)').run(id, projectId, n, parentId, instruction, isRevision ? 1 : 0, 'queued', now());
-      return n;
-    });
-    jobs.enqueue({ type: 'produce_version', projectId, versionId: id });
-    recalcProjectStatus(db, projectId);
+    const row = queueVersion(ctx, projectId, b);
     reply.code(201);
-    return toVersionDTO(db, getVersionRow(db, id));
+    return toVersionDTO(db, row);
   });
 
   app.get('/api/versions/:id', async (req) => toVersionDTO(db, getVersionRow(db, (req.params as { id: string }).id)));
@@ -288,7 +257,7 @@ export function registerProjectRoutes(app: FastifyInstance, ctx: AppContext) {
     const project = getProjectRow(db, v.project_id);
     const plan = parseJson<EditPlan | null>(v.plan_json, null);
     if (!plan) throw conflict('no_plan', 'This draft has no edit plan.');
-    const briefs = listAssetRows(db, v.project_id).filter((a) => !a.excluded).map((a) => {
+    const briefs = listAssetRows(db, v.project_id, 'footage').filter((a) => !a.excluded).map((a) => {
       const info = parseJson<MediaInfo>(a.info_json, {} as MediaInfo);
       return { id: a.id, name: a.original_name, durationMs: info.durationMs, width: info.displayWidth || info.width, height: info.displayHeight || info.height, hasAudio: info.hasAudio, kind: a.kind };
     });

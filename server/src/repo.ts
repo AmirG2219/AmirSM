@@ -44,14 +44,14 @@ export function toProjectDTO(r: Row): ProjectDTO {
   };
 }
 export function toProjectSummary(db: Db, r: Row): ProjectSummary {
-  const counts = db.prepare("SELECT (SELECT COUNT(*) FROM assets WHERE project_id = ?1 AND excluded = 0 AND kind = 'video') AS a, (SELECT COUNT(*) FROM versions WHERE project_id = ?1) AS v").get(r.id) as Row;
+  const counts = db.prepare("SELECT (SELECT COUNT(*) FROM assets WHERE project_id = ?1 AND excluded = 0 AND kind = 'video' AND role = 'footage') AS a, (SELECT COUNT(*) FROM versions WHERE project_id = ?1) AS v").get(r.id) as Row;
   const latest = db.prepare('SELECT id, number, status FROM versions WHERE project_id = ? ORDER BY number DESC LIMIT 1').get(r.id) as Row | undefined;
   let progress: number | null = null;
   if (latest) {
     const job = db.prepare("SELECT progress FROM jobs WHERE version_id = ? AND status IN ('queued','running') ORDER BY created_at DESC LIMIT 1").get(latest.id) as Row | undefined;
     progress = job ? job.progress : null;
   }
-  const thumb = db.prepare("SELECT id FROM assets WHERE project_id = ? AND kind = 'video' AND thumb_name IS NOT NULL AND excluded = 0 ORDER BY sort_order, created_at LIMIT 1").get(r.id) as Row | undefined;
+  const thumb = db.prepare("SELECT id FROM assets WHERE project_id = ? AND kind = 'video' AND role = 'footage' AND thumb_name IS NOT NULL AND excluded = 0 ORDER BY sort_order, created_at LIMIT 1").get(r.id) as Row | undefined;
   return {
     ...toProjectDTO(r),
     assetCount: counts.a,
@@ -72,6 +72,7 @@ export function toAssetDTO(r: Row): AssetDTO {
     id: r.id,
     projectId: r.project_id,
     kind: r.kind,
+    role: r.role ?? 'footage',
     originalName: r.original_name,
     mime: r.mime,
     sizeBytes: r.size_bytes,
@@ -83,8 +84,11 @@ export function toAssetDTO(r: Row): AssetDTO {
     createdAt: r.created_at,
   };
 }
-export const listAssetRows = (db: Db, projectId: string) =>
-  db.prepare('SELECT * FROM assets WHERE project_id = ? ORDER BY sort_order, created_at').all(projectId) as Row[];
+/** All assets of a project, or only one role ('footage' = clips to edit, 'reference' = inspiration videos). */
+export const listAssetRows = (db: Db, projectId: string, role?: 'footage' | 'reference') =>
+  (role
+    ? db.prepare('SELECT * FROM assets WHERE project_id = ? AND role = ? ORDER BY sort_order, created_at').all(projectId, role)
+    : db.prepare('SELECT * FROM assets WHERE project_id = ? ORDER BY sort_order, created_at').all(projectId)) as Row[];
 
 // ---------- jobs / versions ----------
 export function toJobDTO(r: Row): JobDTO {

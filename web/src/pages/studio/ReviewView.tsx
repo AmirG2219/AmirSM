@@ -184,7 +184,9 @@ export function ReadyView({
   anyActive,
   onChanged,
   onCreated,
+  hideRevise,
 }: {
+  hideRevise?: boolean;
   version: VersionDTO;
   assets: AssetDTO[];
   posterUrl: string | null;
@@ -215,7 +217,7 @@ export function ReadyView({
         <div className="rv-side stack-l">
           <ApproveBlock version={version} onChanged={onChanged} />
           <CaptionBlock version={version} ai={ai} onChanged={onChanged} />
-          {version.plan ? <ReviseBlock version={version} ai={ai} anyActive={anyActive} onCreated={onCreated} /> : null}
+          {version.plan && !hideRevise ? <ReviseBlock version={version} ai={ai} anyActive={anyActive} onCreated={onCreated} /> : null}
         </div>
       </div>
 

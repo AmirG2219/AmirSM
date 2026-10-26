@@ -42,6 +42,9 @@ export interface AssetBrief {
   kind: 'video' | 'audio';
 }
 
+import type { DirectorInput, DirectorResult } from './director.js';
+import type { ReferenceVisual } from '../../../shared/analysis.js';
+
 export interface PlanEditInput {
   projectId: string;
   brief: string; // owner's natural-language instructions (for revisions: the original brief)
@@ -56,6 +59,8 @@ export interface PlanEditInput {
    * 'technical' = local signal measurements only. Optional; absent = nothing is known.
    */
   clipAnalyses?: ClipAnalysis[];
+  /** style notes from reference (inspiration) videos the owner showed; see referenceStyleText() */
+  referenceStyle?: string;
 }
 export interface PlanEditResult {
   plan: EditPlan; // already schema-validated and clamped to asset durations
@@ -154,6 +159,10 @@ export interface AiService {
    * Never throws for limits/unavailability/bad output: those clips come back in `skipped` with a reason.
    */
   analyzeClips(input: AnalyzeClipsInput): Promise<AnalyzeClipsResult>;
+
+  // --- Studio agent ---
+  directorTurn(input: DirectorInput): Promise<DirectorResult>;
+  analyzeReference(input: { projectId: string; assetId: string; name: string; durationMs: number; frames: SampledFrame[] }): Promise<{ visual: ReferenceVisual; model: string }>;
 
   // --- Email assistant ---
   summarizeThread(thread: { subject: string; messages: { from: string; date: string; body: string }[] }): Promise<{ summary: string; actionItems: string[]; needsReply: boolean }>;

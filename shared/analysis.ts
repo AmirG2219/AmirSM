@@ -173,3 +173,79 @@ export function technicalToClipAnalysis(assetId: string, p: TechnicalProfile): C
     technical: p,
   };
 }
+
+// ---------------------------------------------------------------- reference ("inspiration") videos
+
+export const REFERENCE_ANALYZER_VERSION = 'ref-1';
+
+export const PACE_LABELS = ['very slow', 'slow', 'medium', 'fast', 'very fast'] as const;
+export type PaceLabel = (typeof PACE_LABELS)[number];
+
+/** Measured locally from the reference video (no AI). */
+export const ReferencePaceSchema = z.object({
+  durationMs: ms,
+  cuts: z.number().int().min(0),
+  /** average shot length (ms), null when too short to measure */
+  avgShotMs: z.number().nullable(),
+  cutsPerMinute: z.number().min(0),
+  label: z.enum(PACE_LABELS),
+  brightness: unit.nullable(),
+  contrast: unit.nullable(),
+  motion: unit.nullable(),
+});
+export type ReferencePace = z.infer<typeof ReferencePaceSchema>;
+
+/** What Claude saw in a handful of sampled stills of the reference. Describes style only. */
+export const ReferenceVisualSchema = z.object({
+  summary: z.string(),
+  mood: z.string(),
+  look: z.string(),
+  framing: z.string(),
+  techniques: z.array(z.string()).default([]),
+  textOnScreen: z.array(z.string()).default([]),
+  transitions: z.array(z.string()).default([]),
+});
+export type ReferenceVisual = z.infer<typeof ReferenceVisualSchema>;
+
+export const ReferenceProfileSchema = z.object({
+  assetId: z.string(),
+  name: z.string(),
+  analyzerVersion: z.string(),
+  pace: ReferencePaceSchema,
+  visual: ReferenceVisualSchema.optional(),
+  framesUsed: z.number().int().min(0),
+  model: z.string().optional(),
+  createdAt: z.string().optional(),
+});
+export type ReferenceProfile = z.infer<typeof ReferenceProfileSchema>;
+
+export function paceLabel(avgShotMs: number | null): PaceLabel {
+  if (avgShotMs === null) return 'medium';
+  if (avgShotMs < 1200) return 'very fast';
+  if (avgShotMs < 2200) return 'fast';
+  if (avgShotMs < 4000) return 'medium';
+  if (avgShotMs < 7000) return 'slow';
+  return 'very slow';
+}
+
+/** Plain-language style brief handed to the planner/director. Visual parts only when Claude really looked. */
+export function referenceStyleText(profiles: ReferenceProfile[]): string {
+  return profiles
+    .map((p) => {
+      const lines = [
+        `Reference "${p.name}" (${(p.pace.durationMs / 1000).toFixed(0)} s): measured pacing is ${p.pace.label}` +
+          (p.pace.avgShotMs ? ` (about ${(p.pace.avgShotMs / 1000).toFixed(1)} s per shot, ${p.pace.cuts} hard cuts)` : '') +
+          '.',
+      ];
+      if (p.visual) {
+        lines.push(`Seen in sampled stills: ${p.visual.summary} Mood: ${p.visual.mood}. Look: ${p.visual.look}. Framing: ${p.visual.framing}.`);
+        if (p.visual.techniques.length) lines.push(`Techniques: ${p.visual.techniques.join('; ')}.`);
+        if (p.visual.textOnScreen.length) lines.push(`On-screen text style: ${p.visual.textOnScreen.join(' | ')}.`);
+        if (p.visual.transitions.length) lines.push(`Transitions: ${p.visual.transitions.join('; ')}.`);
+      } else {
+        lines.push('Only the pacing was measured; its look and content were not analysed.');
+      }
+      return lines.join(' ');
+    })
+    .join('\n');
+}

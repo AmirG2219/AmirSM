@@ -36,6 +36,8 @@ export interface AssetDTO {
   id: string;
   projectId: string;
   kind: 'video' | 'audio';
+  /** 'reference' = inspiration video the owner showed the agent (never used as footage) */
+  role: 'footage' | 'reference';
   originalName: string;
   mime: string;
   sizeBytes: number;
@@ -115,6 +117,22 @@ export interface ProjectDetail {
   project: ProjectDTO;
   assets: AssetDTO[];
   versions: VersionDTO[]; // newest first
+}
+
+export interface ChatMessageDTO {
+  id: string;
+  role: 'user' | 'agent';
+  text: string;
+  attachments: { assetId: string; name: string; role: 'footage' | 'reference'; thumbUrl: string | null }[];
+  /** the draft this agent turn started (render it inline) */
+  versionId: string | null;
+  createdAt: string;
+}
+export interface ChatResponse {
+  messages: ChatMessageDTO[]; // the owner's message and the agent's reply, in order
+  version: VersionDTO | null;
+  /** how the agent decided (shown truthfully): 'ai' = Claude director, 'basic' = no-AI fallback */
+  source: 'ai' | 'basic';
 }
 
 export interface UploadResult {

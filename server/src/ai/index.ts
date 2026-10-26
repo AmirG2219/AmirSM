@@ -8,6 +8,7 @@ import { writeCaption } from './caption.js';
 import { adjustTone, draftEmail, summarizeThread } from './email.js';
 import { planEdit } from './planner.js';
 import { reviewQuality } from './review.js';
+import { analyzeReference, directorTurn } from './director.js';
 import { analyzeClips } from './vision.js';
 import type { AiService, AiStatus } from './types.js';
 
@@ -55,5 +56,7 @@ export function createAiService(deps: AiServiceDeps): AiService {
     summarizeThread: (thread) => summarizeThread(rt, thread),
     draftEmail: (input) => draftEmail(rt, input),
     adjustTone: (input) => adjustTone(rt, input),
+    directorTurn: (input) => directorTurn(rt, input),
+    analyzeReference: (input) => analyzeReference(rt, input),
   };
 }

@@ -6,6 +6,7 @@ import './styles/ui.css';
 import './styles/shell.css';
 import './styles/pages.css';
 import './styles/email.css';
+import './styles/studio.css';
 import App from './App';
 import { AuthProvider } from './hooks/auth';
 import { ThemeProvider } from './hooks/theme';

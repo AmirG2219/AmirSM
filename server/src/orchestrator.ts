@@ -15,6 +15,7 @@ import {
   TECH_ANALYZER_VERSION,
   VISION_ANALYZER_VERSION,
   technicalToClipAnalysis,
+  referenceStyleText,
   type ClipAnalysis,
   type VersionAnalysis,
 } from '../../shared/analysis.js';
@@ -22,6 +23,7 @@ import { createAnalysisStore } from './analysis-store.js';
 import type { PlanAsset } from './video/types.js';
 import { RenderCancelled } from './video/types.js';
 import { FatalJobError, type JobContext, type JobHandler } from './jobs/runner.js';
+import { loadReferenceProfiles } from './reference.js';
 import { assetFilePath, getProjectRow, getVersionRow, listAssetRows, renderFilePath } from './repo.js';
 
 const STAGES = {
@@ -69,7 +71,7 @@ export function createProduceHandler(ctx: AppContext): JobHandler {
       recalcProjectStatus(db, pid);
 
       // ---- inputs: preserved source files, never modified ----
-      const rows = listAssetRows(db, pid).filter((a) => !a.excluded);
+      const rows = listAssetRows(db, pid, 'footage').filter((a) => !a.excluded);
       const planAssets = new Map<string, PlanAsset>();
       const briefs: AssetBrief[] = [];
       for (const a of rows) {
@@ -83,6 +85,8 @@ export function createProduceHandler(ctx: AppContext): JobHandler {
 
       // ---- 0. analyse the footage (local measurements always; Claude's look at sampled stills when configured) ----
       // Never fails the draft: every problem degrades to "less is known" and is written to the version's analysis notes.
+      const refProfiles = loadReferenceProfiles(ctx, pid);
+      const refText = refProfiles.length ? referenceStyleText(refProfiles) : '';
       let clipAnalyses: ClipAnalysis[] = [];
       const needPlan = !parseJson<EditPlan | null>(version.plan_json, null);
       if (needPlan || !version.analysis_json) {
@@ -113,6 +117,7 @@ export function createProduceHandler(ctx: AppContext): JobHandler {
               revisionRequest: version.is_revision ? version.instruction : undefined,
               userSubtitleLines: subtitleLines.length ? subtitleLines : undefined,
               clipAnalyses,
+              ...(refText ? { referenceStyle: refText } : {}),
             },
             { allowRulesFallback: !version.is_revision },
           );

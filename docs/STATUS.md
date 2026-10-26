@@ -1,53 +1,36 @@
-# Amir SM — honest status (v0.1.0)
+# Amir SM — status
 
-Legend: **Tested** = automated tests and/or driven end-to-end in a browser by us · **Awaiting credentials** = code exists, cannot be exercised without an external account · **Partial** · **Not implemented**.
+Legend: **Verified** = automated tests and/or driven for real · **Emulator-tested** = tested against fake servers only · **Not verified** · **Not built**.
 
-## Fully implemented and tested (no external accounts needed)
-| Area | Evidence |
+## Social Studio
+| Capability | Status |
 |---|---|
-| Owner password auth, sessions, lockout, same-origin + Host checks | API tests (`auth-security.test.ts`) |
-| Persistent projects, assets, versions, jobs (SQLite, migrations) | API tests; verified survives server restart |
-| Upload validation (extension allow-list, ffprobe must read it, duplicates rejected, size limit, nothing left behind on rejection) | API tests |
-| Source footage preserved (never modified); versioned renders; immutable approved exports (video + caption + plan + sha256) | API tests (`studio.e2e.test.ts`) |
-| FFmpeg engine: probe, multi-clip trim/sequence, speed, vertical/4:5/1:1 framing (cover with focus / blurred contain), rotated phone footage, crossfade / dip-to-black / slide / cut, silence insertion for clips without audio, per-clip mute/volume, loudness normalisation, optional **owner-uploaded** music (looped, faded), titles (incl. Amharic), burned-in subtitles from owner-supplied text, look presets, fades, progress, cancel, retryable-error classification, export verification | 50 engine tests on real renders of synthetic footage; frames visually inspected |
-| Job queue: retries with backoff, cancel, re-queue after restart, visible progress/stages | API tests |
-| "Basic auto-edit (no AI)" rules planner, clearly labelled in the UI | tests + browser |
-| Manual caption writing/editing with quality checks recomputed | API test |
-| Web UI: Home, Social Studio (full journey), Library, Research, Email, Settings; responsive desktop/mobile; light/dark | driven in the in-app browser (desktop 1280, mobile 375/390), no horizontal overflow |
-| Email workspace on the **local sample mailbox**: search, filters, threads, drafts, two-step approve→send gate, edit-after-approve invalidates approval, "NOT delivered" labelling | API tests + browser |
-| Research workspace storage: competitors, notes, search, history; truthful disabled states | API tests + browser |
-| n8n bridge (outbound events, token-guarded inbound endpoints) | API tests (inbound); outbound uses mocked fetch only |
+| Upload clips (validated with ffprobe, duplicates rejected, originals preserved), reference/example videos kept separate from footage | Verified |
+| Chat with the video agent: it decides to chat, make a first draft, or revise the current draft; shows its reasoning in plain language | **Verified live** with the real Anthropic API (one end-to-end run: director → reference analysis → clip analysis → plan → render → caption → review → revision) |
+| FFmpeg engine: trim/sequence, speed, 9:16 reframing, blur-fill, crossfade/dip/slide/cut, titles, look presets, fades, loudness, progress, cancel, retry; versioned drafts; approved exports are immutable | Verified (50 engine tests + real renders) |
+| Visual understanding: Claude looks at a few sampled still frames per clip (and per reference video) and reports only what is visible | Verified live on **synthetic test-pattern footage only**; quality on your real footage is unknown |
+| Local analysis (no AI): exposure, sharpness, shake, scene cuts; used by the basic editor to avoid bad stretches | Verified (real FFmpeg tests) |
+| No-AI fallback ("Basic auto-edit"), clearly labelled; revisions need the AI | Verified |
+| Caption (Claude), manual edit, approve & download video + caption | Verified |
 
-## Implemented, awaiting credentials (never run against the real service)
-| Feature | Needs | Caveat |
-|---|---|---|
-| AI edit planning, revisions, captions, quality-review consistency check | `ANTHROPIC_API_KEY` | 88 AI-layer tests use a **fake client**. Prompts, tool schemas and real-model behaviour are unverified. Forced `tool_choice` is not used (per current model docs); the app validates and repairs output instead. |
-| Email AI: thread summary, drafting, tone adjust | API key | same |
-| Competitor analysis of pasted material | API key | same |
-| Market research via Anthropic web search | API key + `AI_WEB_SEARCH_ENABLED=true` (billed per search) | same |
-| Sending email via Resend | `RESEND_API_KEY`, `RESEND_FROM` (verified sender) | send-only; adapter tested with mocked HTTP |
-| n8n workflows (3) | n8n instance + credentials | JSON structurally validated against node schemas; **never run in n8n**. n8n Cloud cannot reach a localhost app (see docs/N8N.md). |
+Limits: the editor sees stills, not motion or sound (no transcription, no music, no generated footage); it cannot do effects the engine lacks (zoom, speed ramps, stickers, beat sync). Reference videos influence pacing/look/framing/text style, not content. The first AI generation took ~13 s to start and a render adds time; a vignette look renders slower. HDR/10-bit phone video and multi-minute edits are untested.
 
-## Partial / limitations
-- **No AI ⇒ revisions are refused** (409 with explanation); captions are not generated (write by hand).
-- **No automatic transcription**: subtitles only from text the owner types; timings are spread evenly, not synced to speech. Not a bug — nothing is invented.
-- The editor cannot understand footage content (no vision); AI plans from the brief, clip metadata and revision text only. Trim points are not scene-aware.
-- Video: `vignette` look is ~2x slower to render; 10-bit/HDR phone footage is converted without tone-mapping (untested); loudness is single-pass; only Windows font paths exercised; multi-minute renders never tried.
-- Email mailbox is a **fictional sample**. No Gmail/Outlook/IMAP reading.
-- Research cannot fetch Instagram or other platforms by design (no authorised access); only pasted material, manual notes, opt-in web search, or n8n RSS feeds you list.
-- UI: no drag-reorder of clips, no compare dialog verified (needs two AI-made drafts), no per-cue subtitle timing editor, research notes not editable, library capped at 300 items, no web-app automated tests.
-- No video clip deletion (by design: footage is preserved; clips can be excluded, projects archived).
+## Email
+| Capability | Status |
+|---|---|
+| Approve→send gate (content hash), edit-after-approve resets approval, sample mailbox clearly labelled | Verified |
+| Real IMAP/SMTP provider: connect flow, encrypted credentials, sync, threading, search, attachments, reply/compose | **Emulator-tested only** — never run against a real mailbox |
+| AI summarize / draft / tone | Tested with a fake AI; not run live |
+| Gmail / iCloud / Yahoo / Fastmail / Proton Bridge presets | Not verified against real providers (Yahoo hosts from memory) |
+| Outlook / Microsoft 365 | Not built (needs Microsoft OAuth); shown as unsupported |
+| Outgoing attachments, Bcc, folders other than Inbox/Sent | Not built |
 
-## Not implemented
-Real mailbox providers (Gmail/Outlook/IMAP/OAuth) · speech-to-text · generative video · music library · direct posting to Instagram · multi-user accounts · public deployment/HTTPS · cost estimation in currency (only call/token counters).
+## Needs from you
+1. Gmail (or other) **app password** entered in Email → Connect mailbox (Gmail: 2-Step Verification + https://myaccount.google.com/apppasswords).
+2. Keep `ANTHROPIC_API_KEY` in `.env` (rotate it if it was ever shared).
 
-## Test results
-`npm run typecheck` clean. `npm test`: **164 tests passing** (AI layer 88, video engine 50, HTTP/E2E 26 — see README for how to run). Browser journey verified on a production build: set password → project → upload 3 clips + audio → draft with live progress → playable 1080x1920 H.264/AAC output → manual caption → approve → download; restart persistence.
-Not verified anywhere: any path that calls the real Anthropic, Resend or n8n services; keyboard-only/screen-reader use; Firefox/Safari.
+## Out of scope by decision
+Research/competitor tools, dashboards, content calendar, analytics, auto-posting to Instagram, multi-user, n8n/Resend.
 
-## Accounts and credentials needed
-1. **Anthropic API key** — AI planning, revisions, captions, email AI, analysis (set spend limits via `AI_DAILY_*`).
-2. **Resend account + verified sending domain/address** — only if you want real email delivery (and for the n8n notification workflows).
-3. **A real mailbox provider decision** (Gmail / Outlook / IMAP + OAuth app or app-password) — required before real mailbox reading can be built.
-4. **n8n** — self-hosted on the same machine (simplest) or Cloud with a tunnel you choose to expose.
-5. Nothing else; FFmpeg and SQLite need no accounts.
+## Tests
+`npm run typecheck`; `npm test` (see the repo for the current count). Browser checks done on production builds in the in-app browser (desktop + mobile widths); not done: keyboard-only/screen-reader, Firefox/Safari.

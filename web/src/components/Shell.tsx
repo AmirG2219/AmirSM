@@ -54,22 +54,18 @@ export function Shell() {
       <a href="#main" className="skip-link">
         Skip to content
       </a>
+      <button type="button" className="nav-fab" aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={!collapsed} aria-controls="sidebar" onClick={toggleNav}>
+        <Icon name="sidebar" />
+      </button>
+      <div className="theme-fab">
+        <IconButton icon={theme === 'dark' ? 'sun' : 'moon'} label={themeLabel} onClick={toggle} />
+      </div>
       <aside className="sidebar" id="sidebar" aria-label="Primary">
         <div className="side-top">
           <Link className="brand" to="/" aria-label="Amir SM, Social Studio">
             <Mark />
             <Wordmark />
           </Link>
-          <IconButton className="side-toggle" icon={theme === 'dark' ? 'sun' : 'moon'} size="sm" label={themeLabel} onClick={toggle} />
-          <IconButton
-            className="side-toggle"
-            icon="sidebar"
-            size="sm"
-            label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            aria-expanded={!collapsed}
-            aria-controls="sidebar"
-            onClick={toggleNav}
-          />
         </div>
         <nav className="nav" aria-label="Main">
           {MAIN.map((n) => link(n))}

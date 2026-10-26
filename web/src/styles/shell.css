@@ -96,3 +96,12 @@
 .auth-card h1 { font-family: var(--font-display); font-size: 28px; margin: var(--s-5) 0 var(--s-2); }
 .auth-theme { position: fixed; top: 12px; right: 12px; }
 @media (max-width: 480px) { .auth-card { padding: var(--s-5); } }
+
+/* theme switch top-right; sidebar collapse button sits outside the nav, on its edge */
+.theme-fab { position: fixed; top: 14px; right: 18px; z-index: 40; }
+.theme-fab .iconbtn, .theme-fab button { background: var(--surface); border: 1px solid var(--line); border-radius: 50%; }
+.nav-fab { position: fixed; top: 26px; left: calc(var(--sidebar-w) - 16px); z-index: 41; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); border: 1px solid var(--line-strong); color: var(--ink-2); transition: left .22s var(--ease); }
+.nav-fab:hover { color: var(--accent); border-color: var(--accent); }
+.nav-fab .icon { width: 16px; height: 16px; }
+.app-collapsed .nav-fab { left: calc(var(--sidebar-w-collapsed) - 16px); }
+@media (max-width: 767px) { .theme-fab, .nav-fab { display: none; } }

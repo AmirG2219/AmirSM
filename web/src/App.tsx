@@ -6,7 +6,7 @@ import { BootScreen, LoginScreen, ServerDownScreen, SetupScreen } from './pages/
 import { Email } from './pages/email/Email';
 import { Settings } from './pages/Settings';
 import { StudioHome } from './pages/studio/StudioHome';
-import { ProjectPage } from './pages/studio/ProjectPage';
+import { Workspace } from './pages/studio/Workspace';
 
 function NotFound() {
   return (
@@ -32,7 +32,7 @@ export default function App() {
         <Route element={<Shell />}>
           <Route index element={<StudioHome />} />
           <Route path="studio" element={<Navigate to="/" replace />} />
-          <Route path="studio/:id" element={<ProjectPage />} />
+          <Route path="studio/:id" element={<Workspace />} />
           <Route path="email" element={<Email />} />
           <Route path="settings" element={<Settings />} />
           {/* Retired pages: send old bookmarks somewhere sensible. */}

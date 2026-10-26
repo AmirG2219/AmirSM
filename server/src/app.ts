@@ -10,6 +10,7 @@ import type { AppContext } from './context.js';
 import { AuthService, installAuthGuard, registerAuthRoutes } from './auth.js';
 import { HttpError } from './http.js';
 import { registerProjectRoutes } from './routes/projects.js';
+import { registerChatRoutes } from './routes/chat.js';
 import { registerEmailRoutes } from './routes/email.js';
 import { registerSettingsRoutes } from './routes/settings.js';
 
@@ -47,6 +48,7 @@ export async function buildApp(ctx: AppContext, opts: BuildOptions = {}): Promis
   installAuthGuard(app, auth, { allowedHosts: opts.allowedHosts ?? [] });
   registerAuthRoutes(app, auth);
   registerProjectRoutes(app, ctx);
+  registerChatRoutes(app, ctx);
   registerEmailRoutes(app, ctx);
   registerSettingsRoutes(app, ctx);
 

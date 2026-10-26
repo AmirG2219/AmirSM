@@ -1,48 +1,42 @@
 # አ Amir SM
 
-A private, local-first creative workspace: turn raw clips into an Instagram-ready vertical video with an AI-assisted edit plan and caption, research content ideas, and manage email with human review before anything is sent.
+A private, local-first workspace with two jobs:
 
-Runs entirely on your machine. Needs no paid video tools. AI features need your own Anthropic API key (optional — the app still edits video without it).
+- **Social Studio** — upload clips, chat with an AI video editor about what you want (optionally attach an example video for style), review the draft, ask for changes, approve, download the video and caption.
+- **Email** — a real inbox client (IMAP/SMTP) with AI summaries, drafting and tone help. Nothing is ever sent without your explicit approval.
 
-> Honest status of every feature (what is tested, what awaits credentials, what is not built): **[docs/STATUS.md](docs/STATUS.md)**.
+Everything runs on your machine. FFmpeg and SQLite need no accounts. AI features use your own Anthropic API key.
+
+> What is tested, what is not, and what needs credentials: **[docs/STATUS.md](docs/STATUS.md)**.
 
 ## Requirements
-- Node.js 22+ (developed on Node 24; uses the built-in `node:sqlite`)
-- npm. FFmpeg is installed automatically by `npm install` (`ffmpeg-static`, `ffprobe-static`) — nothing to install system-wide.
+Node.js 22+ (developed on 24) and npm. FFmpeg arrives with `npm install`.
 
 ## Install & run
 ```bash
 npm install
-cp .env.example .env        # then edit; every value is optional to start
-npm run build               # builds the web app (once, and after UI changes)
-npm start                   # http://127.0.0.1:4300
+cp .env.example .env     # then edit (see below)
+npm run build
+npm start                # http://127.0.0.1:4300
 ```
-First visit asks you to **set the owner password** (≥10 characters). Only you can sign in; the server listens on `127.0.0.1` only.
+First visit: set your owner password (10+ characters). The server listens on `127.0.0.1` only — use `127.0.0.1` (not `localhost`) in the browser.
 
-Development with hot reload: `npm run dev` (API on :4300, UI on http://localhost:5300).
+Set `DATA_DIR` in `.env` to a folder that is **not** synced by OneDrive/Dropbox (a live SQLite database and large videos can corrupt there). Add `ANTHROPIC_API_KEY` to enable the AI editor, captions and email AI; without it the app makes a clearly-labelled basic edit.
 
-**Important:** set `DATA_DIR` in `.env` to a folder that is *not* synced by OneDrive/Dropbox (e.g. `C:\AmirSM\data`). Syncing a live SQLite database and large videos can corrupt data. The app warns at startup if it detects this.
-
-## What lives where
-`DATA_DIR/uploads` your original clips (never modified) · `renders` versioned drafts · `exports` approved video + caption + plan (write-protected, never overwritten) · `amir-sm.db` projects, versions, jobs, research, email.
+Development with hot reload: `npm run dev` (API :4300, UI :5300).
 
 ## Using it
-1. **Social Studio → New project**, drop in clips, describe the video, pick a style, **Create draft**.
-2. Watch progress, play the draft, read the caption, **Request changes** (needs the API key) or **Approve**.
-3. Approving writes an immutable export you can download (video + caption).
+**Social Studio:** New video → add clips → tell the editor what you want (attach an example video with the paperclip if you have one) → watch the draft → ask for changes in the chat → Approve & download.
+**Email:** Email → Connect mailbox (Gmail/iCloud/Yahoo/Fastmail with an app password, Proton Bridge, or custom IMAP). See [docs/EMAIL.md](docs/EMAIL.md).
+
+## Data layout
+`DATA_DIR/uploads` originals (never modified) · `renders` versioned drafts · `exports` approved video + caption + plan (write-protected) · `amir-sm.db` database · `secret.key` encryption key for stored mailbox credentials.
 
 ## Tests
 ```bash
 npm run typecheck
-npm test                    # unit + real FFmpeg renders + HTTP end-to-end (takes a few minutes)
+npm test        # unit + real FFmpeg renders + HTTP end-to-end; takes a few minutes; no network
 ```
-Tests use synthetic footage generated with FFmpeg (`scripts/make-test-footage.ts`) and fake AI clients; they never call the network.
 
-## Configuration
-See `.env.example`. Nothing secret is ever committed (`.env` is git-ignored).
-
-## Connecting external services (when you are ready)
-See the list in [docs/STATUS.md](docs/STATUS.md#accounts-and-credentials-needed). n8n workflows to import are in `n8n/workflows/`; setup notes in [docs/N8N.md](docs/N8N.md).
-
-## Architecture & API
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/API.md](docs/API.md)
+## Docs
+[ARCHITECTURE](docs/ARCHITECTURE.md) · [API](docs/API.md) · [EMAIL](docs/EMAIL.md) · [STATUS](docs/STATUS.md)
