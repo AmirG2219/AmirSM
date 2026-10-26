@@ -9,6 +9,7 @@ import { STYLE_PRESETS, type StylePreset } from '../../../shared/editPlan.js';
 import { ReferenceVisualSchema, type ReferenceProfile, type ReferenceVisual, type SampledFrame, referenceStyleText } from '../../../shared/analysis.js';
 import { toToolSchema, type AiRuntime } from './client.js';
 import { fence, truncate } from './prompts/common.js';
+import { INTENT_RULES, RECIPES, PRO_RULES } from './prompts/playbook.js';
 import { AiUnavailableError } from './types.js';
 
 // ------------------------------------------------------------------ director turn
@@ -64,7 +65,11 @@ WHAT HAPPENS WHEN YOU DECIDE
 In "generate", "brief" must be the full creative brief in your own words, synthesised from the whole conversation: subject, mood, pacing, style, any exact title text the owner wants (quoted), any constraints. Do not invent facts about the footage. If the owner showed reference videos, say how they should influence pacing, look, framing and text style.
 "preset" (optional) picks the closest style: day-in-the-life, calm-cinematic, motivation, high-energy (sports, soccer, driving, action), storytelling, custom.
 
-CRAFT (use it, briefly, when it helps the owner decide): open on the strongest shot within the first second or two; match cut rhythm to the mood (calm = longer shots and soft transitions, energetic = short hard cuts); keep titles short and readable; end on a clean beat; vertical 9:16 framing; don't pile on effects; trim dead starts and shaky/dark stretches.
+${INTENT_RULES}
+
+${RECIPES}
+
+${PRO_RULES}
 
 HONESTY (hard rules)
 1. You have NOT watched the owner's videos. You only know what the clip list and analyses below state. "Seen in sampled stills" means a vision model looked at a few still frames, nothing more. Never claim to know what happens in a clip, who is in it, or what is said.
